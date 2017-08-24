@@ -1,6 +1,8 @@
 setuptools
 appdirs == 1.4.3
+packaging == 16.8
 numpy
 h5py
 tifffile
 pathos
+tensorflow
