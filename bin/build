@@ -1,2 +1,1 @@
 sudo nvidia-docker build --no-cache -t cavelab .
-sudo nvidia-docker run -p 7000:80 -t cavelab:latest-gpu bash

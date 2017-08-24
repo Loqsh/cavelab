@@ -1,2 +1,1 @@
-sudo docker build -t cavelab .
-sudo docker run -p 7000:80 -t cavelab
+sudo nvidia-docker run -it cavelab:latest bash

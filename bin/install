@@ -1,10 +1,18 @@
+#!/bin/bash
 
-sudo apt-get update && yes Y | apt-get install python python-tk idle python-pmw python-imaging
+# install apt-get dependancies
+if [ $BUILD_ENV == "Docker" ];
+then
+  apt-get update
+  apt-get install -y python python-tk idle python-pmw python-imaging
+else
+  sudo apt-get update && yes Y | sudo apt-get install python python-tk idle python-pmw python-imaging
+fi
+
+#install pip and requirements
 pip install -U pip
+cd /cavelab/
 pip install -r requirements.txt
 
-echo "export CAVELAB_HOME=$(pwd)" >> ~/.cavelab
-source ~/.cavelab
+# Setup cavelab
 python setup.py develop
-
-echo 'source ~/.cavelab' >> $bashrc
