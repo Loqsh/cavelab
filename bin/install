@@ -1,0 +1,10 @@
+
+sudo apt-get update && yes Y | apt-get install python python-tk idle python-pmw python-imaging
+pip install -U pip
+pip install -r requirements.txt
+
+echo "export CAVELAB_HOME=$(pwd)" >> ~/.cavelab
+source ~/.cavelab
+python setup.py develop
+
+echo 'source ~/.cavelab' >> $bashrc

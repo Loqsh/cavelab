@@ -1,0 +1,6 @@
+setuptools
+appdirs == 1.4.3
+numpy
+h5py
+tifffile
+pathos
