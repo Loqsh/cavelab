@@ -4,9 +4,9 @@
 if [ $BUILD_ENV == "Docker" ];
 then
   apt-get update
-  apt-get install -y python python-tk idle python-pmw python-imaging
+  apt-get install -y python python-tk idle python-pmw python-imaging libopencv-dev python-opencv
 else
-  sudo apt-get update && yes Y | sudo apt-get install python python-tk idle python-pmw python-imaging
+  sudo apt-get update && yes Y | sudo apt-get install python python-tk idle python-pmw python-imaging libopencv-dev python-opencv
 fi
 
 #install pip and requirements

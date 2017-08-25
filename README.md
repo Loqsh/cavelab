@@ -24,7 +24,7 @@ Will add without nvidia-docker support
 
 ## Plans
 
-Todo
+Minimal Todo
 
 ```
 V Import all h5 data processings into cavelab
@@ -33,19 +33,30 @@ V Global Sess
 V Seperate image processing modules (numpy and tensorflow)
 V Import visualization utils
 V Import Tensorflow helper layers
+V Install OpenCV
 - Import models (Graph Development)
-- Import hparams
-- Import blind model loading
+- Saving/Loading model
+- Hyperparameters
 - Import Generation of Training data
 - Import Inference techniques
-- Install OpenCV
+
 ```
 
-Multi-server
+Scaling Todo
 ```
-- Notion of tasks
+- Hyperparameters
+- Notion of tasks and sub-tasks
 - Experiment tasks
+- Async sub-tasking
 - Inference tasks
 - Task Queue
 - Running N instances
+- Experiment logging and hypothesis testing
+```
+
+Nice to have
+```
+- Web-Interface
+- Documentation
+- Usage in Notebooks
 ```
