@@ -1,1 +1,1 @@
-import main
+from .data import h5data
