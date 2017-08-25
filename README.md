@@ -1,5 +1,5 @@
 # Cavelab
-AI &amp; Computer Vision laboratory for rapid prototyping and scale deployment. Currently it will specialize in EM image alignment problem but will have generalizable features.
+Deep Computer vision toolkit for rapid prototyping and scale deployment using Tensorflow. Specifically developed for Peta-scale alignment, but highly generalizable.
 
 ## Setup
 ```
@@ -31,11 +31,21 @@ V Import all h5 data processings into cavelab
 V Import data reading from tfrecords
 V Global Sess
 V Seperate image processing modules (numpy and tensorflow)
-- Import data collection module
-- Import visualization utils
-- Import Tensorflow base layers
-- Import Graph development
+V Import visualization utils
+V Import Tensorflow helper layers
+- Import models (Graph Development)
+- Import hparams
+- Import blind model loading
+- Import Generation of Training data
 - Import Inference techniques
-- Import Data collection techniques
 - Install OpenCV
+```
+
+Multi-server
+```
+- Notion of tasks
+- Experiment tasks
+- Inference tasks
+- Task Queue
+- Running N instances
 ```
