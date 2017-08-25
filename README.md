@@ -25,10 +25,17 @@ Will add without nvidia-docker support
 ## Plans
 
 Todo
-- Import all h5 data processings into cavelab
+
+```
+V Import all h5 data processings into cavelab
+V Import data reading from tfrecords
+V Global Sess
+V Seperate image processing modules (numpy and tensorflow)
+- Import data collection module
 - Import visualization utils
 - Import Tensorflow base layers
 - Import Graph development
 - Import Inference techniques
 - Import Data collection techniques
 - Install OpenCV
+```
