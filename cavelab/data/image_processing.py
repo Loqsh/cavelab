@@ -1,5 +1,7 @@
 from scipy.misc import imresize
 from scipy import ndimage
+import numpy as np
+from math import floor
 
 def resize(image, ratio, order=0):
     return ndimage.interpolation.zoom(image, ratio, order=0)/255.0
@@ -16,6 +18,15 @@ def normalize(image):
         image *= 255
 
     return image
+
+
+def central_crop(images, size):
+    shape = images.shape
+    return images[:, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2, shape[2]/2-size[2]/2:shape[2]/2+size[2]/2]
+
+def random_crop(images, size):
+    offset = [int(floor((images.shape[i]-size[i])*np.random.random())) for i in range(len(images.shape))]
+    return images[offset[0]:offset[0]+size[0], offset[1]:offset[1]+size[1],offset[2]:offset[2]+size[2]], offset
 
 def f(x, y, pad, length):
     if (x>=pad and y>=pad) and (x<length-pad and y<length-pad):

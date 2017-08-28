@@ -34,12 +34,14 @@ V Seperate image processing modules (numpy and tensorflow)
 V Import visualization utils
 V Import Tensorflow helper layers
 V Install OpenCV
+V Saving/Loading model
 - Import models (Graph Development)
-- Saving/Loading model
+- Rename dual models
 - Hyperparameters
+- Pair of data samples
 - Import Generation of Training data
 - Import Inference techniques
-
+- Goal train simple model
 ```
 
 Scaling Todo
@@ -52,6 +54,11 @@ Scaling Todo
 - Task Queue
 - Running N instances
 - Experiment logging and hypothesis testing
+```
+
+Generalizable
+```
+- Generalizable Data reading
 ```
 
 Nice to have

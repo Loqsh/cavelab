@@ -131,6 +131,10 @@ def conv_block(x, y, kernels, bias, kernel_shape):
 
     return x_out, y_out
 
+def cnn(x, kernels, bias, kernel_shape):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+    x_out = tf.tanh(convolve2d(x, kernels[-1], padding='SAME')+bias[-1 ])
+    return x_out
 
 # Cross similarity
 def normalize(x):

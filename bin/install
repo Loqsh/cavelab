@@ -9,6 +9,9 @@ else
   sudo apt-get update && yes Y | sudo apt-get install python python-tk idle python-pmw python-imaging libopencv-dev python-opencv
 fi
 
+#Add Darwin
+
+
 #install pip and requirements
 pip install -U pip
 cd /cavelab/

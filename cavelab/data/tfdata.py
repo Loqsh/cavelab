@@ -11,12 +11,13 @@ import tf_image_processing as tip
 class tfdata(object):
     def __init__(self,  train_file, # train_bad_20.tfrecords
                         features = {
-                                    'search_raw': {'in_width': 612, 'width':512},
-                                    'template_raw': {'in_width': 324, 'width':160}
+                                    'search_raw': {'in_width': 612, 'width': 324},
+                                    'template_raw': {'in_width': 324, 'width':324}
                                    },
                         batch_size = 8,
                         flipping = False,
                         rotating = False,
+                        random_crop = False,
                         max_degree = 0):
 
         self.flipping = flipping
@@ -25,6 +26,7 @@ class tfdata(object):
         self.batch_size = batch_size
         self.features = features
         self.max_degree = max_degree
+        self.random_crop = random_crop
         self.s_train, self.t_train = self.inputs(self.batch_size)
 
     # Functions below modified from here https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos/reading_data/fully_connected_reader.py
@@ -59,9 +61,13 @@ class tfdata(object):
           angle = tf.random_uniform([1], -self.max_degree,self.max_degree, dtype=tf.float32)
           search = tip.rotate_image(search, angle)
 
-        # Translation - Crop 712 - > 512 and 324 -> 224
-        search = tf.random_crop(search,  [self.features['search_raw']['width'], self.features['search_raw']['width']])
-        template =  tf.random_crop(template, [self.features['template_raw']['width'], self.features['template_raw']['width']])
+        # Translation Invariance - Crop 712 - > 512 and 324 -> 224
+        if self.random_crop:
+            search = tf.random_crop(search,  [self.features['search_raw']['width'], self.features['search_raw']['width']])
+            template =  tf.random_crop(template, [self.features['template_raw']['width'], self.features['template_raw']['width']])
+        else:
+            search = tip.central_crop(search,  [self.features['search_raw']['width'], self.features['search_raw']['width']])
+            template = tip.central_crop(template, [self.features['template_raw']['width'], self.features['template_raw']['width']])
 
         # Convert from [0, 255] -> [-0.5, 0.5] floats.
         search = tf.cast(search, tf.float32) / 255
@@ -104,4 +110,6 @@ class tfdata(object):
 
     def get_batch(self):
         sess = global_session().get_sess()
+
         search, template = sess.run([self.s_train, self.t_train])
+        return search, template

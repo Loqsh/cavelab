@@ -11,6 +11,11 @@ def image_distortions(image, distortions):
 
     return image
 
+def central_crop(image, size):
+    shape = image.get_shape().as_list()
+    return image[shape[0]/2-size[0]/2:shape[0]/2+size[0]/2, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2]
+
+
 def rotate_image(image, angle):
     image = tf.expand_dims(image, dim=2)
     image = rotate_image_tensor(image, angle)
