@@ -40,7 +40,7 @@ class global_session(Singleton):
         self.saver = tf.train.Saver()
         return self.saver
 
-    def restor_weights(self, model_dir):
+    def restore_weights(self, model_dir):
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and ckpt.model_checkpoint_path:
             self.saver.restore(g.sess, ckpt.model_checkpoint_path)

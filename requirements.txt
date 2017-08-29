@@ -6,4 +6,6 @@ h5py
 tifffile
 pathos
 tensorflow
-scipy
+scipy == 0.18.1
+protobuf == 3.3.0
+cloud-volume
