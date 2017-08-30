@@ -3,8 +3,8 @@ from scipy import ndimage
 import numpy as np
 from math import floor
 
-def resize(image, ratio, order=0):
-    return ndimage.interpolation.zoom(image, ratio, order=0)/255.0
+def resize(image, ratio=(1/3.0, 1/3.0), order=0):
+    return ndimage.interpolation.zoom(image, ratio, order=order)/255.0
 
 def normalize(image):
     if len(image.shape)>2:
@@ -18,7 +18,6 @@ def normalize(image):
         image *= 255
 
     return image
-
 
 def central_crop(images, size):
     shape = images.shape
