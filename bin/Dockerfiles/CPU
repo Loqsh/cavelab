@@ -1,0 +1,10 @@
+FROM tensorflow/tensorflow:latest
+
+#EXPOSE 80
+ENV BUILD_ENV=Docker
+COPY . /cavelab/
+
+RUN chmod +x /cavelab/bin/install
+
+RUN /cavelab/bin/install
+ENV MESSAGE "hello from Pixie Docker"
