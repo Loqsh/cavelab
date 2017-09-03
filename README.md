@@ -1,29 +1,33 @@
 # Cavelab
-Deep Computer vision toolkit for rapid prototyping and scale deployment using Tensorflow. Specifically developed for Peta-scale alignment, but highly generalizable.
-
-## Setup
-```
-./bin/install
-```
+Deep-vision environment for rapid prototyping and scale deployment. Includes libraries such as Tensorflow and OpenCV. Specifically developed for Peta-scale alignment on EM images, but highly generalizable.
 
 ## Usage
 ```
-import cavelab
+from cavelab import image_processing, visual
+
+blend_map = image_processing.get_blend_map(256, 512)
+visual.save(blend_map, 'blend.jpg')
 ```
-Should work without GPU tensorflow dependancies
 
-
-## Docker
-Assume you have nvidia-docker
+## Build
+Build dockerfile and then run the environment
 ```
 ./bin/build
 ./bin/run
 ```
-Will add without nvidia-docker support
+You would require to have docker. For GPU version Nvidia-Docker (Linux only).
 
+## Manual Setup
+Run install (Linux only)
+```
+./bin/install
+```
+and import
+```
+import cavelab
+```
 
 ## Plans
-
 Minimal Todo
 
 ```

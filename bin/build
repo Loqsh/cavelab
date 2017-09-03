@@ -1,1 +1,8 @@
-sudo nvidia-docker build --no-cache -t cavelab .
+unamestr=`uname`
+
+if [[ "$unamestr" == 'Linux'  ]]; then
+  sudo docker build --no-cache -t cavelab:latest-gpu /bin/Dockerfiles/GPU .
+elif [[ "$unamestr" == 'Darwin'  ]]; then
+  echo $unamestr
+  docker build --no-cache -t cavelab:latest -f ./bin/Dockerfiles/CPU .
+fi
