@@ -5,7 +5,9 @@ numpy
 h5py
 tifffile
 pathos
-tensorflow
+
+#tensorflow
 scipy == 0.18.1
 protobuf == 3.3.0
 cloud-volume
+git+https://github.com/JuliaPy/pyjulia

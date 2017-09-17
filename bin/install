@@ -4,14 +4,16 @@ echo 'running installations'
 if [ $BUILD_ENV == "Docker" ];
 then
   apt-get update
-  apt-get install -y python python-tk idle python-pmw python-imaging libopencv-dev python-opencv
+  apt-get install -y python python-tk idle python-pmw python-imaging libopencv-dev python-opencv wget git
 else
   sudo apt-get update && yes Y | sudo apt-get install python python-tk idle python-pmw python-imaging libopencv-dev python-opencv
 fi
-
-#install pip and requirements
+./julia/build_julia
+#Install requirements
 pip install -U pip
 cd /cavelab/
+
+# Pip requriements
 pip install -r requirements.txt
 
 # Setup cavelab

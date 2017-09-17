@@ -33,46 +33,39 @@ class tfdata(object):
     def read_and_decode(self, filename_queue):
         reader = tf.TFRecordReader()
         _, serialized_example = reader.read(filename_queue)
+        _features = {feature: tf.FixedLenFeature([], tf.string) for feature in self.features.keys()}
         features = tf.parse_single_example(
           serialized_example,
           # Defaults are not specified since both keys are required.
-          features={
-              'search_raw': tf.FixedLenFeature([], tf.string),
-              'template_raw': tf.FixedLenFeature([], tf.string),
-          })
+          features=_features)
 
-        # Convert from a scalar string tensor (whose single string has
-        search = tf.decode_raw(features['search_raw'], tf.uint8) # Change to tf.int8
-        search.set_shape([self.features['search_raw']['in_width']**2])
-        search = tf.reshape(search, [self.features['search_raw']['in_width'], self.features['search_raw']['in_width']])
-
-        template = tf.decode_raw(features['template_raw'],tf.uint8) # Change to tf.int8
-        template.set_shape([self.features['template_raw']['in_width']**2])
-        template = tf.reshape(template, [self.features['template_raw']['in_width'], self.features['template_raw']['in_width']])
+        outputs = {}
+        for feature_name, feature in self.features.iteritems():
+          # Convert from a scalar string tensor (whose single string has
+          image = tf.decode_raw(features[feature_name], tf.uint8) # Change to tf.int8
+          image.set_shape([feature['in_width']**2])
+          image = tf.reshape(image, [feature['in_width'], feature['in_width']])
+          outputs[feature_name] = image
 
         # Rotation - Random Flip left, right, random, up down
         if self.flipping:
           distortions = tf.random_uniform([2], 0, 1.0, dtype=tf.float32)
-          search = tip.image_distortions(search, distortions)
-          template =  tip.image_distortions(template, distortions)
+          outputs = {k: tip.image_distortions(v, distortions) for k, v in outputs.items()}
 
-        # Rotation by degree (rotate only single channel)
+        # Rotation by degree
         if self.rotating:
           angle = tf.random_uniform([1], -self.max_degree,self.max_degree, dtype=tf.float32)
-          search = tip.rotate_image(search, angle)
+          outputs = {k: tip.rotate_image(v, angle) for k, v in outputs.items()}
 
         # Translation Invariance - Crop 712 - > 512 and 324 -> 224
         if self.random_crop:
-            search = tf.random_crop(search,  [self.features['search_raw']['width'], self.features['search_raw']['width']])
-            template =  tf.random_crop(template, [self.features['template_raw']['width'], self.features['template_raw']['width']])
+          outputs = {k: tf.random_crop(v, [self.features[k]['width'], self.features[k]['width']], seed=10) for k, v in outputs.items()}
         else:
-            search = tip.central_crop(search,  [self.features['search_raw']['width'], self.features['search_raw']['width']])
-            template = tip.central_crop(template, [self.features['template_raw']['width'], self.features['template_raw']['width']])
+          outputs = {k: tip.central_crop(v, [self.features[k]['width'], self.features[k]['width']]) for k, v in outputs.items()}
 
         # Convert from [0, 255] -> [-0.5, 0.5] floats.
-        search = tf.cast(search, tf.float32) / 255
-        template = tf.cast(template, tf.float32) / 255
-        return search, template
+        outputs = {k: tf.cast(v, tf.float32) / 255.0 for k, v in outputs.items()}
+        return outputs.values()
 
     def inputs(self, batch_size, num_epochs=None):
       """Reads input data num_epochs times.

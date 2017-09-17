@@ -66,3 +66,83 @@ def get_blend_map(pad, size):
         for y in range(size):
             blend_map[x,y] = f(x,y, pad, size)
     return blend_map
+
+
+'''
+    reads data from matrix
+    if borders are passed then instead of error return black
+
+'''
+def read_without_borders_2d(data, (x,y), (off_x, off_y), scale_ratio=(1,1)):
+    shape = data.shape
+    crop = [x,x+off_x, y, y+off_y]
+    (padd_x, padd_x_size, padd_y, padd_y_size) = (0,off_x,0,off_y)
+
+    if crop[0]<0:
+        crop[0]=0
+        padd_x = abs(x)
+
+    if crop[2]<0:
+        crop[2]=0
+        padd_y = abs(y)
+
+    if crop[1]>shape[0]:
+        padd_x_size = off_x-abs((shape[0]-crop[1]))
+        crop[1] = shape[0]
+
+    if crop[3]>shape[1]:
+        padd_y_size = off_y-abs((shape[1]-crop[3]))
+        crop[3] = shape[1]
+
+    sample = np.zeros((off_x,off_y))
+
+    if padd_x>=0 and padd_x<off_x and padd_y>=0 and padd_y<off_y and padd_x_size>0 and padd_x_size<=off_x and padd_y_size>0 and padd_y_size<=off_y:
+        sample[padd_x:padd_x_size, padd_y:padd_y_size] = np.array(data[crop[0]:crop[1], crop[2]:crop[3]])[:,:]
+
+    return resize(sample, ratio=scale_ratio)
+
+
+def read_without_borders_3d(data, (x,y,z), (off_x,off_y,off_z), scale_ratio=(1,1,1)):
+    shape = data.shape
+    crop = [x,x+off_x, y, y+off_y, z, z+off_z]
+    (padd_x, padd_x_size, padd_y, padd_y_size, padd_z, padd_z_size) = (0,off_x,0,off_y,0,off_z)
+    print('read_without_borders_3d')
+    print(shape)
+    print(crop)
+    if crop[0]<0:
+        crop[0]=0
+        padd_x = abs(x)
+
+    if crop[2]<0:
+        crop[2]=0
+        padd_y = abs(y)
+
+    if crop[4]<0:
+        crop[4]=0
+        padd_z = abs(z)
+
+    if crop[1]>shape[0]:
+        padd_x_size = off_x-abs((shape[0]-crop[1]))
+        crop[1] = shape[0]
+
+    if crop[3]>shape[1]:
+        padd_y_size = off_y-abs((shape[1]-crop[3]))
+        crop[3] = shape[1]
+
+    if crop[5]>shape[2]:
+        padd_z_size = off_z-abs((shape[2]-crop[5]))
+        crop[5] = shape[2]
+
+
+    sample = np.zeros((off_x,off_y, off_z))
+    conditions = [[padd_x>=0, padd_x<off_x],
+                  [padd_y>=0, padd_y<off_y],
+                  [padd_z>=0, padd_z<off_z],
+                  [padd_x_size>0, padd_x_size<=off_x],
+                  [padd_y_size>0, padd_y_size<=off_y],
+                  [padd_z_size>0, padd_z_size<=off_z]]
+
+    if np.array(conditions).all() == True:
+        sample[padd_x:padd_x_size, padd_y:padd_y_size, padd_z:padd_z_size] = np.array(data[crop[0]:crop[1], crop[2]:crop[3], crop[4]:crop[5]])[:,:,:,0]
+
+    return resize(sample, ratio=scale_ratio)

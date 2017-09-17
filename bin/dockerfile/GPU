@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:latest-gpu
+FROM gcr.io/tensorflow/tensorflow:latest-gpu
 
 #EXPOSE 80
 ENV BUILD_ENV=Docker

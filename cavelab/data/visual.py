@@ -33,16 +33,17 @@ def showMultiLoss(loss_data, p1, p2, smoothing = 100):
 
 
 def save(image, name='out', normalize= True):
-    if normalize:
-        im = image+np.abs(image.min())
-        im = 255*(im/im.max())
-        im = np.squeeze(im)
+
+    if normalize and not image.mean()==0:
+        image = image+np.abs(image.min())
+        image = 255*(image/image.max())
+        image = np.squeeze(image)
     #print(im.shape)
-    result = Image.fromarray(im.astype(np.uint8))
+    result = Image.fromarray(image.astype(np.uint8))
     result.save(name+'.jpg')
 
 def usual_save(image, name='out'):
-    result = Image.fromarray(im.astype(np.uint8))
+    result = Image.fromarray(image.astype(np.uint8))
     result.save(name+'.jpg')
 
 def xcsurface(xc):

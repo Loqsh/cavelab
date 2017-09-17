@@ -1,11 +1,43 @@
 import tensorflow as tf
 import sys
-import helpers
-import loss
-import metrics
+
+import cavelab.tf.base_layers as bl
 from datetime import datetime
 
-def FusionNet(g, hparams):
+
+def FusionNet(net, kernel_shape = [[3,3,1,8],
+                                  [3,3,8,16],
+                                  [3,3,16,32],
+                                  [3,3,32,64]]):
+    #Variable settings
+    layers = [net]
+    count = len(kernel_shape)
+
+    #Encode
+    for i in range(count):
+
+        net = bl.residual_block(net, kernel_shape[i])
+        layers.append(net)
+
+        if i!=(count-1):
+            net = bl.max_pool_2x2(net)
+    # Decode
+    for i in range(1, count):
+        shape = kernel_shape[-i]
+        shape = [2,2, shape[3], shape[3]/2]
+
+        net = bl.deconv_block(net, shape)
+        net_enc  = layers[(count-1)-(i-1)]
+
+        net = bl.residual_block(net+net_enc, kernel_shape[-i-1])
+
+    return net
+
+
+
+
+#FIXME Update dual base layers
+def DualFusionNet(g, hparams):
     with tf.variable_scope('Passes'):
         # Init Convolution Weights
         g.source_alpha = [g.image]
@@ -61,7 +93,7 @@ def FusionNet(g, hparams):
 
     return g
 
-def Unet(g, hparams):
+def DualUnet(g, hparams):
     # Init Convolution Weights
     g.source_alpha = [g.image]
     g.template_alpha = [g.template]

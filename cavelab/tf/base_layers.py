@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import random
+random.seed(1)
 
 def bias_variable(identity = False, initial=0.0, shape=(), name = 'bias'):
     if identity:
@@ -28,11 +30,15 @@ def weight_variable(shape, identity = False, xavier = True,  name = 'conv', summ
     #    metrics.kernel_summary(weight, name)
     return weight
 
+
 def add_conv_weight_layer(kernels, bias, kernel_shape, identity_init= False):
+
     # Set variables
-    stringID = str(len(kernels))+'_'+str(len(kernels))
+    #stringID = str(len(kernels))+'_'+str(len(kernels))
+    stringID = str(random.randint(0,100000))
     bias.append(bias_variable(identity_init, shape=[kernel_shape[3]], name='bias_layer_'+stringID))
     kernels.append(weight_variable(kernel_shape, identity_init, name='layer_'+stringID, summary=False))
+
     return kernels, bias
 
 def convolve2d(x,y, padding = "VALID", strides=[1,1,1,1], rate = 1):
@@ -120,7 +126,7 @@ def batch_normalization(x, y):
     return x, y
 
 ### FusionNet
-def conv_block(x, y, kernels, bias, kernel_shape):
+def conv_block_dual(x, y, kernels, bias, kernel_shape):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
 
     x_out = tf.tanh(convolve2d(x, kernels[-1], padding='SAME')+bias[-1])
@@ -130,6 +136,11 @@ def conv_block(x, y, kernels, bias, kernel_shape):
     #x_out, y_out = batch_normalization(x_out, y_out)
 
     return x_out, y_out
+
+def conv_block(x, kernel_shape, kernels=[], bias=[], activation = tf.tanh):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+    x_out = activation(convolve2d(x, kernels[-1], padding='SAME')+bias[-1])
+    return x_out
 
 def cnn(x, kernels, bias, kernel_shape):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
@@ -169,7 +180,24 @@ def cross_similarity(x):
 
     return cross_sim
 
-def deconv_block(x, y, kernels, bias, kernel_shape):
+def residual_block(net, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
+    x_1 = conv_block(net, kernel_shape)
+    kernel_shape[2] = kernel_shape[3]
+
+    x_2 = conv_block(x_1, kernel_shape)
+    x_3 = conv_block(x_2, kernel_shape)
+    x_4 = conv_block(x_3, kernel_shape)
+
+    x_5 = conv_block(x_4+x_1, kernel_shape)
+    return x_5
+
+def deconv_block(x, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+    kernels[-1] = tf.transpose(kernels[-1], [0,1,3,2])
+    x_out = activation(deconv2d(x, kernels[-1], padding='SAME')+bias[-1])
+    return x_out
+
+def deconv_block_dual(x, y, kernels, bias, kernel_shape):
 
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
 
@@ -183,7 +211,7 @@ def deconv_block(x, y, kernels, bias, kernel_shape):
 
     return x_out, y_out
 
-def residual_block(x, y, kernels, bias, kernel_shape):
+def residual_block_dual(x, y, kernels, bias, kernel_shape):
     x_1, y_1 = conv_block(x, y, kernels, bias, kernel_shape)
     kernel_shape[2] = kernel_shape[3]
     x_2, y_2 = conv_block(x_1, y_1, kernels, bias, kernel_shape)

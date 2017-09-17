@@ -1,0 +1,21 @@
+
+#Install Julia
+#FIXME move to another wheel
+JULIA_TAR="julia-0.6.0-linux-x86_64.tar.gz"
+wget https://julialang-s3.julialang.org/bin/linux/x64/0.6/${JULIA_TAR} -P /tmp/
+cd /tmp/
+tar xzf /tmp/${JULIA_TAR}
+rm /tmp/${JULIA_TAR}
+ln -s /tmp/juli*/bin/julia /usr/local/bin/julia
+cd /
+
+# Julia Requirements
+#FIXME Add REQUIRE file instead
+julia /cavelab/bin/julia/install.jl
+
+# PyCall bug
+#FIXME Get rid of this once PyCall improved
+cd ~/.julia/v0.6/PyCall
+git pull origin master
+git checkout master
+julia /cavelab/bin/julia/build.jl

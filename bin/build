@@ -1,8 +1,9 @@
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux'  ]]; then
-  sudo docker build --no-cache -t cavelab:latest-gpu /bin/Dockerfiles/GPU .
+  echo 'Building GPU version'
+  sudo docker build --no-cache -t cavelab:latest-gpu -f ./bin/dockerfile/GPU .
 elif [[ "$unamestr" == 'Darwin'  ]]; then
-  echo $unamestr
-  docker build --no-cache -t cavelab:latest -f ./bin/Dockerfiles/CPU .
+  echo 'Building CPU version'
+  docker build --no-cache -t cavelab:latest -f ./bin/dockerfile/CPU .
 fi
