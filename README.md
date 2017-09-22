@@ -39,13 +39,14 @@ V Import visualization utils
 V Import Tensorflow helper layers
 V Install OpenCV
 V Saving/Loading model
-- Import models (Graph Development)
-- Rename dual models
+V Import models (Graph Development)
+V Rename dual models
+V Goal train simple model
+V Pair of data samples
 - Hyperparameters
-- Pair of data samples
 - Import Generation of Training data
 - Import Inference techniques
-- Goal train simple model
+
 ```
 
 Scaling Todo
