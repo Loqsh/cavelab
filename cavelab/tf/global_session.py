@@ -22,14 +22,18 @@ class global_session(Singleton):
         else:
             self.sess = tf.Session(config=config)
 
-        if log_dir!="":
-            self.add_log_writers(log_dir)
+        self.log_dir = log_dir
+
+        if self.log_dir!="":
+            self.add_log_writers(self.log_dir)
 
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.sess.run(init_op)
         self.coord = tf.train.Coordinator()
         self.threads = tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
         self.run_metadata = tf.RunMetadata()
+        self.saver = tf.train.Saver()
+
 
     def init():
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -37,8 +41,10 @@ class global_session(Singleton):
 
     def add_log_writers(self, log_dir, clean_first=False):
         assert log_dir[-1] == '/'
+        self.log_dir = log_dir
         if clean_first and os.path.exists(log_dir):
-            shutil.rmtree(log_dir, ignore_errors=True)
+            raise Exception("Directory is not empty: ", log_dir)
+            #shutil.rmtree(log_dir, ignore_errors=True)
         self.merged = tf.summary.merge_all()
         self.train_writer = tf.summary.FileWriter(log_dir + 'train', self.sess.graph)
         self.test_writer = tf.summary.FileWriter(log_dir + 'test')
@@ -48,14 +54,14 @@ class global_session(Singleton):
             writer.add_run_metadata(self.run_metadata, 'step%03d' % step)
         writer.add_summary(merge, step)
 
-    def create_saver(self):
-        self.saver = tf.train.Saver()
-        return self.saver
+    def model_save(self):
+        self.saver.save(self.sess, self.log_dir+"model.ckpt")
 
-    def restore_weights(self, model_dir):
+    def restore_weights(self):
+        model_dir =self.log_dir
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and ckpt.model_checkpoint_path:
-            self.saver.restore(g.sess, ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
 
     def get_sess(self):
         return self.sess

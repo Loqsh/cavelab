@@ -4,7 +4,7 @@ import numpy as np
 from math import floor
 
 def resize(image, ratio=(1/3.0, 1/3.0), order=0):
-    return ndimage.interpolation.zoom(image, ratio, order=order)/255.0
+    return ndimage.interpolation.zoom(image, ratio, order=order)
 
 def normalize(image):
     if len(image.shape)>2:

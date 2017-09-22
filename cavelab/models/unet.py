@@ -35,7 +35,6 @@ def FusionNet(net, kernel_shape = [[3,3,1,8],
 
 
 
-
 #FIXME Update dual base layers
 def DualFusionNet(g, hparams):
     with tf.variable_scope('Passes'):

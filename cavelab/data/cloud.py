@@ -3,8 +3,9 @@ import numpy as np
 import os
 import hashlib
 import image_processing as ip
+
 class Cloud(object):
-    def __init__(self, path = "", mip = 0, bounded = False, fill_missing=True, cache= True):
+    def __init__(self, path = "", mip = 0, bounded = False, fill_missing=True, cache=False):
         self.path = path
         self.mip = mip
         self.path_hash = int(hashlib.sha1(path).hexdigest(), 16) % (10 ** 8)
@@ -15,6 +16,11 @@ class Cloud(object):
         self.fill_missing = fill_missing
         self.cache = cache
 
+        if cache == False:
+            self.vol = CloudVolume(self.path, mip=self.mip, bounded=self.bounded, fill_missing=self.fill_missing)
+            self.shape = self.vol.shape
+
+
     def read(self, (x, y, z), (off_x, off_y, off_z)):
         #Simple file caching
         name = str(x)+'_'+str(y)+'_'+str(z)+'_'+str((off_x, off_y, off_z))+'_'+str(self.mip)+'_'+str(self.path_hash)
@@ -24,10 +30,12 @@ class Cloud(object):
 
         if not self.vol:
             self.vol = CloudVolume(self.path, mip=self.mip, bounded=self.bounded, fill_missing=self.fill_missing)
+            self.shape = self.vol.shape
 
         x /= self.sampling
         y /= self.sampling
         image = self.vol[x:x+off_x, y:y+off_y, z:z+off_z]
+        
         if self.cache:
             np.save(file_path, image)
 

@@ -4,3 +4,4 @@ from .data import visual
 from .data import Cloud
 from .data import image_processing
 import models
+from .inference import Infer
