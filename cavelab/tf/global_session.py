@@ -1,6 +1,7 @@
 import tensorflow as tf
 import shutil
 import os
+import json
 
 class _Singleton(type):
     """ A metaclass that creates a Singleton base class when called. """
@@ -23,7 +24,6 @@ class global_session(Singleton):
             self.sess = tf.Session(config=config)
 
         self.log_dir = log_dir
-
         if self.log_dir!="":
             self.add_log_writers(self.log_dir)
 
@@ -39,15 +39,24 @@ class global_session(Singleton):
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.sess.run(init_op)
 
-    def add_log_writers(self, log_dir, clean_first=False):
+    def add_log_writers(self, log_dir, hparams={}, clean_first=False):
         assert log_dir[-1] == '/'
         self.log_dir = log_dir
         if clean_first and os.path.exists(log_dir):
-            raise Exception("Directory is not empty: ", log_dir)
-            #shutil.rmtree(log_dir, ignore_errors=True)
+            print("Directory is not empty", log_dir)
+            name = raw_input("Do you want to rewrite? (Y) ")
+            if str(name)=="Y":
+                shutil.rmtree(log_dir)
+            else:
+                raise Exception("Directory was not empty, exiting!", log_dir)
+
         self.merged = tf.summary.merge_all()
         self.train_writer = tf.summary.FileWriter(log_dir + 'train', self.sess.graph)
         self.test_writer = tf.summary.FileWriter(log_dir + 'test')
+
+        # Save meta information
+        with open(log_dir+'hparams.json', 'w') as outfile:
+            json.dump(hparams, outfile)
 
     def log_save(self, writer, merge, step):
         if writer == self.train_writer:

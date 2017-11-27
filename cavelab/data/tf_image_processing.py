@@ -6,13 +6,16 @@ def image_distortions(image, distortions):
     image = tf.reverse(image, mirror)
 
     distort_up_down_random = distortions[1]
-    mirror = tf.cond(distort_up_down_random > 0.5, lambda: tf.constant([0,1]), lambda: tf.constant([0]))
+    mirror = tf.cond(distort_up_down_random > 0.5, lambda: tf.constant([1,0]), lambda: tf.constant([0]))
     image = tf.reverse(image, mirror)
 
     return image
 
 def central_crop(image, size):
+
     shape = image.get_shape().as_list()
+    if len(shape)>3:
+        image[shape[0]/2-size[0]/2:shape[0]/2+size[0]/2, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2, :]
     return image[shape[0]/2-size[0]/2:shape[0]/2+size[0]/2, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2]
 
 

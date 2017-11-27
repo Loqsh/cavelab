@@ -1,1 +1,1 @@
-from unet import FusionNet
+from unet import FusionNet, SiameseFusionNet

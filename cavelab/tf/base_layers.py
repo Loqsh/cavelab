@@ -1,13 +1,15 @@
 import tensorflow as tf
 import numpy as np
 import random
+import cavelab as cl
 random.seed(1)
 
-def bias_variable(identity = False, initial=0.0, shape=(), name = 'bias'):
+def bias_variable(identity = False, init=0.0, shape=(), name = 'bias'):
+
     if identity:
         initial = tf.constant(0.0, shape=shape)
     else:
-        initial = tf.constant(initial, shape=shape)
+        initial = tf.constant(init, shape=shape)
     b = tf.Variable(initial)
     #metrics.variable_summaries(b)
     return b
@@ -36,12 +38,12 @@ def add_conv_weight_layer(kernels, bias, kernel_shape, identity_init= False):
     # Set variables
     #stringID = str(len(kernels))+'_'+str(len(kernels))
     stringID = str(random.randint(0,100000))
-    bias.append(bias_variable(identity_init, shape=[kernel_shape[3]], name='bias_layer_'+stringID))
+    bias.append(bias_variable(identity=identity_init, init=0.0, shape=[kernel_shape[3]], name='bias_layer_'+stringID))
     kernels.append(weight_variable(kernel_shape, identity_init, name='layer_'+stringID, summary=False))
 
     return kernels, bias
 
-def convolve2d(x,y, padding = "VALID", strides=[1,1,1,1], rate = 1):
+def convolve2d(x,y, padding = "VALID", strides=[1,1,1,1], rate=1, normalized=False):
 
     #Dim corrections
     if(len(x.get_shape())==2):
@@ -59,17 +61,17 @@ def convolve2d(x,y, padding = "VALID", strides=[1,1,1,1], rate = 1):
         y = tf.expand_dims(y, dim=2)
 
     y = tf.to_float(y, name='ToFloat')
-    if rate>1:
-        o = tf.nn.atrous_conv2d(x, y, rate=rate, padding=padding)
+
+    if normalized:
+        o = normxcorr2(x, y, strides=strides, padding=padding)#o = tf.nn.atrous_conv2d(x, y, rate=rate, padding=padding)
     else:
         o = tf.nn.conv2d(x, y, strides=strides, padding=padding)
+
     return o
 
 def deconv2d(x, W, stride=2, padding = "SAME"):
     x_shape = x.get_shape().as_list()
-    #print('deconv2d')
     output_shape =[x_shape[0], x_shape[1]*2, x_shape[2]*2, x_shape[3]//2]
-    #print(output_shape)
 
     return tf.nn.conv2d_transpose(x, W, output_shape=output_shape, strides=[1, stride, stride, 1], padding=padding)
 
@@ -120,27 +122,39 @@ def conv_one_by_one(x):
     #out = tf.squeeze(out)
     return out, kernel, b
 
-def batch_normalization(x, y):
 
-
-    return x, y
-
-### FusionNet
-def conv_block_dual(x, y, kernels, bias, kernel_shape):
+def conv_block(x, kernel_shape, is_training=tf.constant(True), kernels=[], bias=[], activation = tf.tanh):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
 
-    x_out = tf.tanh(convolve2d(x, kernels[-1], padding='SAME')+bias[-1])
-    y_out = tf.tanh(convolve2d(y, kernels[-1], padding='SAME')+bias[-1])
+    x = convolve2d(x, kernels[-1], padding='SAME')
+    x = tf.layers.batch_normalization(x, training=True)
+    x_out =  activation(x+bias[-1])
+
+    return x_out
+
+def conv3d(x, kernel_shape, padding='VALID', strides=[1,1,1,1,1], is_training=tf.constant(True), activation = tf.tanh):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+
+    x = tf.nn.conv2d(x, kernels[-1], strides=strides, padding=padding) #convolve3d(x, , padding='SAME')
+    x = tf.layers.batch_normalization(x, training=True)
+    x_out =  activation(x+bias[-1])
+
+    return x_out
+
+### FusionNet
+def conv_block_dual(x, y, kernel_shape, kernels=[], bias=[], activation = tf.tanh):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+    x = convolve2d(x, kernels[-1], padding='SAME')
+    y = convolve2d(y, kernels[-1], padding='SAME')
+
+    x_out = activation(x+bias[-1])
+    y_out = activation(y+bias[-1])
 
     #normalization
-    #x_out, y_out = batch_normalization(x_out, y_out)
+    x_out, y_out = batch_normalization(x_out, y_out)
 
     return x_out, y_out
 
-def conv_block(x, kernel_shape, kernels=[], bias=[], activation = tf.tanh):
-    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
-    x_out = activation(convolve2d(x, kernels[-1], padding='SAME')+bias[-1])
-    return x_out
 
 def cnn(x, kernels, bias, kernel_shape):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
@@ -181,15 +195,27 @@ def cross_similarity(x):
     return cross_sim
 
 def residual_block(net, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
+
     x_1 = conv_block(net, kernel_shape)
-    kernel_shape[2] = kernel_shape[3]
+    shape = [kernel_shape[0], kernel_shape[1], kernel_shape[3], kernel_shape[3]]
 
-    x_2 = conv_block(x_1, kernel_shape)
-    x_3 = conv_block(x_2, kernel_shape)
-    x_4 = conv_block(x_3, kernel_shape)
+    x_2 = conv_block(x_1, shape)
+    x_3 = conv_block(x_2, shape)
+    x_4 = conv_block(x_3, shape)
 
-    x_5 = conv_block(x_4+x_1, kernel_shape)
+    x_5 = conv_block(x_4+x_1, shape)
     return x_5
+
+def residual_block_dual(x, y, kernel_shape, kernels=[], bias=[] ):
+    x_1, y_1 = conv_block_dual(x, y, kernel_shape,  kernels, bias, )
+    shape = [kernel_shape[0], kernel_shape[1], kernel_shape[3], kernel_shape[3]]
+
+    x_2, y_2 = conv_block_dual(x_1, y_1, shape, kernels, bias)
+    x_3, y_3 = conv_block_dual(x_2, y_2, shape, kernels, bias)
+    x_4, y_4 = conv_block_dual(x_3, y_3, shape, kernels, bias)
+
+    x_5, y_5 = conv_block_dual(x_4+x_1, y_4+y_1, shape, kernels, bias, )
+    return x_5, y_5
 
 def deconv_block(x, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
@@ -197,29 +223,35 @@ def deconv_block(x, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
     x_out = activation(deconv2d(x, kernels[-1], padding='SAME')+bias[-1])
     return x_out
 
-def deconv_block_dual(x, y, kernels, bias, kernel_shape):
+def deconv_block_dual(x, y, kernel_shape, resize=False, activation=tf.tanh, kernels=[], bias=[]):
 
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
 
-    kernels[-1] = tf.transpose(kernels[-1], [0,1,3,2])
-    x_out = tf.tanh(deconv2d(x, kernels[-1], padding='SAME')+bias[-1])
-    y_out = tf.tanh(deconv2d(y, kernels[-1], padding='SAME')+bias[-1])
+    if resize:
+        upsample = resizeconv2d
+    else:
+        kernels[-1] = tf.transpose(kernels[-1], [0,1,3,2])
+        upsample = deconv2d
 
-    #x_out = tf.tanh(resizeconv2d(x, kernels[-1], padding='SAME')+bias[-1])
-    #y_out = tf.tanh(resizeconv2d(y, kernels[-1], padding='SAME')+bias[-1])
-    #x_out, y_out = batch_normalization(x_out, y_out)
+    x = upsample(x, kernels[-1], padding='SAME')
+    y = upsample(y, kernels[-1], padding='SAME')
+
+    x_out = activation(x+bias[-1])
+    y_out = activation(y+bias[-1])
+
+    x_out, y_out = batch_normalization(x_out, y_out)
 
     return x_out, y_out
 
-def residual_block_dual(x, y, kernels, bias, kernel_shape):
-    x_1, y_1 = conv_block(x, y, kernels, bias, kernel_shape)
-    kernel_shape[2] = kernel_shape[3]
-    x_2, y_2 = conv_block(x_1, y_1, kernels, bias, kernel_shape)
-    x_3, y_3 = conv_block(x_2, y_2, kernels, bias, kernel_shape)
-    x_4, y_4 = conv_block(x_3, y_3, kernels, bias, kernel_shape)
+def batch_normalization(x, y, phase=True):
+    x = tf.contrib.layers.batch_norm(x,
+                                    center=True, scale=True,
+                                    is_training=phase)
+    y = tf.contrib.layers.batch_norm(y,
+                                    center=True, scale=True,
+                                    is_training=phase)
+    return x, y
 
-    x_5, y_5 = conv_block(x_4+x_1, y_4+y_1, kernels, bias, kernel_shape)
-    return x_5, y_5
 
 def fftconvolve2d(x, y, padding="VALID"):
     #return convolve2d(x,y)
@@ -232,17 +264,16 @@ def fftconvolve2d(x, y, padding="VALID"):
     need to add custom striding
     """
     # Read shapes
-    x_shape = np.array(tuple(x.get_shape().as_list()), dtype=np.int32)
-    y_shape = np.array(tuple(y.get_shape().as_list()), dtype=np.int32)
+    x_shape = tf.shape(x) #np.array(tuple(x.get_shape().as_list()), dtype=np.int32)
+    y_shape = tf.shape(y) #np.array(tuple(y.get_shape().as_list()), dtype=np.int32)
 
     # Check if they are 2D add one artificial batch layer
     # Do the same for kernel seperately
 
     # Construct paddings and pad
-    x_shape[1:3] = x_shape[1:3]-1
-    y_pad =  [[0,0], [0, x_shape[1]],[0, x_shape[2]]]
-    y_shape[1:3] = y_shape[1:3]-1
-    x_pad = [[0,0], [0, y_shape[1]],[0, y_shape[2]]]
+
+    y_pad = [[0,0], [0, x_shape[1]-1],[0,  x_shape[2]-1]]
+    x_pad = [[0,0], [0, y_shape[1]-1],[0, y_shape[2]-1]]
 
     x = tf.pad(x, x_pad)
     y = tf.pad(y, y_pad)
@@ -263,11 +294,11 @@ def fftconvolve2d(x, y, padding="VALID"):
 
     #Slice correctly based on requirements
     if padding == 'VALID':
-        begin = [0, y_shape[1], y_shape[2]]
+        begin = [0, y_shape[1]-1, y_shape[2]-1]
         size  = [x_shape[0], x_shape[1]-y_shape[1], x_shape[2]-y_shape[2]]
 
     if padding == 'SAME':
-        begin = [0, y_shape[1]/2-1, y_shape[2]/2-1]
+        begin = [0, (y_shape[1]-1)/2-1, (y_shape[2]-1)/2-1]
         size  = x_shape #[-1, x_shape[0], x_shape[1]]
 
     z = tf.slice(z, begin, size)
@@ -324,3 +355,180 @@ def fftconvolve3d(x, y, padding):
     z = tf.slice(convftt, begin, size)
     z = tf.squeeze(z)
     return z
+
+'''
+    NCC layer
+    Input img = [b,w,h,d] and template = [w,h,d,d_new]
+    Output p = [b,w,h,d_new]
+'''
+
+def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.001):
+
+
+    # Preprocessing for 2d or 3d normxocrr
+    axis = [0,1]
+    t_shape = template.get_shape().as_list()
+    i_shape = img.get_shape().as_list()
+    shape = t_shape[0]*t_shape[1]*t_shape[2]
+
+    n_channels = t_shape[2]#*t_shape[3]
+    convolve = lambda x, y: tf.nn.conv2d(x, y, padding = padding, strides=strides)
+
+    #normalize and get variance
+    dt = template - tf.reduce_mean(template, axis = [0,1,2], keep_dims = True) # [w,h, d, d_new]
+    templatevariance = tf.reduce_sum(tf.square(dt), axis = [0,1,2], keep_dims = True) # [w,h,d,d_new]
+
+    t1 = tf.ones(tf.shape(dt)) # [w,h, d, d_new]
+    tr = dt #tf.reverse(dt, axis) # [w,h, d, d_new]
+
+    numerator = convolve(img, tr) # [b, w, h, d_new]
+    n_shape = img.get_shape().as_list()
+
+    # Need to zero out per channel
+    t1 = t1[:,:,:,0:1] # Some optimization
+    localsum2 = convolve(tf.square(img), t1)# [b, w, h, d_new]
+    localsum  = convolve(img, t1) #[b, w, h, d_new]
+
+    localvariance = localsum2-tf.square(localsum)/shape+eps
+
+    templatevariance = tf.tile(templatevariance, [n_shape[0],n_shape[1],n_shape[2], 1])
+    denominator = tf.sqrt(localvariance*templatevariance)#tf.multiply(localvariance,templatevariance))  # [b,w,h,d_new] #tf.sqrt(localvariance*templatevariance)
+
+    #zero housekeeping
+    numerator = tf.where(denominator<=tf.zeros(tf.shape(denominator)),
+                            tf.zeros(tf.shape(numerator), tf.float32),
+                            numerator)
+
+    denominator = tf.where(denominator<=tf.zeros(tf.shape(denominator))+tf.constant(eps),
+                            tf.zeros(tf.shape(denominator),tf.float32)+1/tf.constant(eps),
+                            denominator)
+
+    #Compute Pearson
+    p = tf.div(numerator,denominator)
+    p = tf.where(tf.is_nan(p, name=None), tf.zeros(tf.shape(p), tf.float32), p, name=None)
+
+    return p
+
+
+'''
+
+    Compute NCC using FFT of img and template per batch dimension
+    Input
+        img = [batch_size, width, height]
+        template = [batch_size, width, height]
+    Output
+        p = [batch_size, widht, height]
+
+'''
+
+def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.00001):
+
+    # Preprocessing for 2d or 3d normxocrr
+    axis = [1,2]
+    t_shape = tf.shape(template) #.get_shape()
+    shape = tf.cast(t_shape[1]*t_shape[2], tf.float32)
+    convolve = lambda x, y: fftconvolve2d(x, y, padding = padding)
+
+    if t_shape.get_shape()[0]>3:
+        axis = [1,2,3]
+        shape *= t_shape[3]
+        convolve = lambda x, y: fftconvolve3d(x, y, padding = padding)
+
+    #normalize and get variance'
+    dt = template - tf.reduce_mean(template, axis = axis, keep_dims = True)
+
+    templatevariance = tf.reduce_sum(tf.square(dt), axis = axis, keep_dims = True)+tf.constant(eps)
+    if  t_shape.get_shape()[0]>3: templatevariance =  tf.squeeze(templatevariance, [3])
+
+    t1 = tf.ones(tf.shape(dt))
+    tr = tf.reverse(dt, axis)
+
+    numerator = convolve(img, tr)
+    localsum2 = convolve(tf.square(img), t1)
+    localsum = convolve(img, t1)
+
+    localvariance = localsum2-tf.square(localsum)/shape+tf.constant(eps)
+
+    cl.tf.metrics.scalar(tf.reduce_mean(templatevariance), name='variance/template')
+    cl.tf.metrics.scalar(tf.reduce_mean(localvariance), name='variance/image')
+
+    denominator = tf.sqrt(localvariance*templatevariance)
+
+    #zero housekeeping
+    numerator = tf.where(denominator<=tf.zeros(tf.shape(denominator)),
+                            tf.zeros(tf.shape(numerator), tf.float32),
+                            numerator)
+
+    denominator = tf.where(denominator<=tf.zeros(tf.shape(denominator))+tf.constant(eps)*tf.constant(eps),
+                            tf.zeros(tf.shape(denominator),tf.float32)+tf.constant(eps),
+                            denominator)
+
+    #Compute Pearson
+    p = tf.div(numerator,denominator)
+    p = tf.where(tf.is_nan(p, name=None), tf.zeros(tf.shape(p), tf.float32), p, name=None)
+
+    return p
+
+'''
+
+    Compute NCC using FFT of img and template per batch and channel dimension
+    Input
+        img = [batch_size, width, height, channel]
+        template = [batch_size, width, height, channel]
+    Output
+        p = [batch_size, widht, height, channel]
+
+'''
+def normxcorr(source, template):
+
+    s_shape = tf.shape(source) #.as_list()
+    t_shape = tf.shape(template) #.as_list()
+
+    with tf.variable_scope('normxcorr'):
+        source = tf.transpose(source, [0,3,1,2])
+        template = tf.transpose(template, [0,3,1,2])
+
+        source = tf.reshape(source, [s_shape[0]*s_shape[3],s_shape[1], s_shape[2]])
+        template = tf.reshape(template, [t_shape[0]*t_shape[3], t_shape[1], t_shape[2]])
+
+        p = normxcorr2FFT(source, template)
+        p_shape = tf.shape(p)
+
+        p = tf.reshape(p, [s_shape[0],  s_shape[3], p_shape[1], p_shape[2]])
+        p = tf.transpose(p, [0,2,3,1], name='normxcorr')
+
+    return p
+
+def EuclideanDistance(img, template,  strides=[1,1,1,1], padding='VALID', eps = 0.0001):
+    axis = [1,2]
+    t_shape = tf.shape(template) #.get_shape()
+    shape = tf.cast(t_shape[1]*t_shape[2], tf.float32)
+    convolve = lambda x, y: fftconvolve2d(x, y, padding = padding)
+
+    dt = template
+    t1 = tf.ones(tf.shape(dt))
+    tr = tf.reverse(dt, axis)
+
+    T2 = tf.reduce_mean(tf.square(dt), axis = axis, keep_dims = True)
+    I2 = convolve(tf.square(img), t1)
+    IT = convolve(img, tr)
+
+    Edist = (I2-2*IT+T2)
+    return Edist
+
+def Correlation(img, template,  padding='VALID'):
+
+    convolve = lambda x, y: fftconvolve2d(x, y, padding = padding)
+    tr = tf.reverse(template, [1,2])
+    corr = convolve(img, tr)
+    return corr
+
+def lambda_norm((img, tmp)):
+    return Correlation(img, tmp)
+
+def batch_normxcorr(image, template):
+    image = tf.transpose(image, [0,3,1,2])
+    template = tf.transpose(template, [0,3,1,2])
+    p = tf.map_fn(lambda_norm, (image, template), dtype=tf.float32, parallel_iterations=2, name="crop1")
+    p = tf.transpose(p, [0,2,3,1], name='normxcorr')
+    return p

@@ -11,6 +11,11 @@ def show(img):
     plt.imshow(img, cmap='Greys_r')
     plt.show()
 
+def draw_curve(x, y, name='curve'):
+    fig = plt.figure()
+    plt.plot(x, y, c='grey')
+    plt.savefig()
+
 def showLoss(loss_data, smoothing = 100):
     fig = plt.figure()
     hamming = smooth(loss_data, smoothing, 'hamming')
@@ -31,6 +36,12 @@ def showMultiLoss(loss_data, p1, p2, smoothing = 100):
     plt.plot(xrange(iters), loss_data, c='grey')
     plt.plot(xrange(hamming.shape[0]), hamming, c='r')
 
+def normalize(image, normalize=True):
+    if not image.mean()==0:
+        image = image+np.abs(image.min())
+        image = 255*(image/image.max())
+        image = np.squeeze(image)
+    return image
 
 def save(image, name='out', normalize= True):
 

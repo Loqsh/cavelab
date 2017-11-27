@@ -28,25 +28,17 @@ import cavelab
 ```
 
 ## Plans
-Minimal Todo
-
+To do
 ```
-V Import all h5 data processings into cavelab
-V Import data reading from tfrecords
-V Global Sess
-V Seperate image processing modules (numpy and tensorflow)
-V Import visualization utils
-V Import Tensorflow helper layers
-V Install OpenCV
-V Saving/Loading model
-V Import models (Graph Development)
-V Rename dual models
-V Goal train simple model
-V Pair of data samples
-- Hyperparameters
-- Import Generation of Training data
-- Import Inference techniques
+- 3D TFdata full implementation including data augmentation
+- Deprecation Warning: /root/.cloudvolume/secrets/google-secret.json is now preferred to /root/.neuroglancer/secrets/google-secret.json.
+- hparams save bug is not working
+```
 
+Still to abstract
+```
+- Infer from features infer.py
+- Training
 ```
 
 Scaling Todo
@@ -59,11 +51,6 @@ Scaling Todo
 - Task Queue
 - Running N instances
 - Experiment logging and hypothesis testing
-```
-
-Generalizable
-```
-- Generalizable Data reading
 ```
 
 Nice to have

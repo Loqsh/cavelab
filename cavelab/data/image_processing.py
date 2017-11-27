@@ -4,6 +4,8 @@ import numpy as np
 from math import floor
 
 def resize(image, ratio=(1/3.0, 1/3.0), order=0):
+    if ratio[0]==1 and ratio[1]==1:
+        return image
     return ndimage.interpolation.zoom(image, ratio, order=order)
 
 def normalize(image):
@@ -67,6 +69,92 @@ def get_blend_map(pad, size):
             blend_map[x,y] = f(x,y, pad, size)
     return blend_map
 
+import numpy as np
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage.filters import gaussian_filter
+
+
+'''
+Written by nasimraham
+'''
+# Elastic transform
+def elastic_transformations(alpha, sigma, rng=np.random.RandomState(42),
+                            interpolation_order=1):
+    """Returns a function to elastically transform multiple images."""
+    # Good values for:
+    #   alpha: 2000
+    #   sigma: between 40 and 60
+    def _elastic_transform_2D(images):
+        """`images` is a numpy array of shape (K, M, N) of K images of size M*N."""
+        # Take measurements
+        image_shape = images[0].shape
+        # Make random fields
+        dx = rng.uniform(-1, 1, image_shape) * alpha
+        dy = rng.uniform(-1, 1, image_shape) * alpha
+        # Smooth dx and dy
+        sdx = gaussian_filter(dx, sigma=sigma, mode='reflect')
+        sdy = gaussian_filter(dy, sigma=sigma, mode='reflect')
+        # Make meshgrid
+        x, y = np.meshgrid(np.arange(image_shape[1]), np.arange(image_shape[0]))
+        # Distort meshgrid indices
+        distorted_indices = (y + sdy).reshape(-1, 1), \
+                            (x + sdx).reshape(-1, 1)
+
+        # Map cooordinates from image to distorted index set
+        transformed_images = [map_coordinates(image, distorted_indices, mode='reflect',
+                                              order=interpolation_order).reshape(image_shape)
+                              for image in images]
+        return transformed_images
+    return _elastic_transform_2D
+
+'''
+    Make black the crop area
+'''
+
+def black_crop(image, crop):
+    s = image.shape
+    image[0:crop,:] = 0
+    image[:,0:crop] = 0
+    image[s[0]-crop:, :] = 0
+    image[:, s[1]-crop:] = 0
+    return image
+
+'''
+    Get Grid function
+    Input shape [x,y]
+    Output set of points within batches
+'''
+
+def get_grid(shape, step=0, batch_size=8):
+        grid = []
+        x, y = (0,0)
+        step = step
+
+        while(True):
+            row = []
+            for i in range(batch_size):
+
+                if x>shape[0]:
+                    x, y = 0, y+step
+
+                if y>shape[1]:
+                    break
+
+                row.append([x,y])
+                x += step
+
+            if(len(row)==0):
+                break
+
+            while(len(row)<batch_size):
+                row.append([-1,-1])
+
+            grid.append(row)
+            if row[-1][0] == -1:
+                break
+
+        return grid
+
 
 '''
     reads data from matrix
@@ -102,13 +190,14 @@ def read_without_borders_2d(data, (x,y), (off_x, off_y), scale_ratio=(1,1)):
     return resize(sample, ratio=scale_ratio)
 
 
-def read_without_borders_3d(data, (x,y,z), (off_x,off_y,off_z), scale_ratio=(1,1,1)):
-    shape = data.shape
+def read_without_borders_3d(data, (x,y,z), (off_x,off_y,off_z), scale_ratio=(1,1,1), voxel_offset = (0,0)):
+    shape = np.array(data.shape)
+    shape[0] += voxel_offset[0]
+    shape[1] += voxel_offset[1]
+
     crop = [x,x+off_x, y, y+off_y, z, z+off_z]
     (padd_x, padd_x_size, padd_y, padd_y_size, padd_z, padd_z_size) = (0,off_x,0,off_y,0,off_z)
-    print('read_without_borders_3d')
-    print(shape)
-    print(crop)
+
     if crop[0]<0:
         crop[0]=0
         padd_x = abs(x)

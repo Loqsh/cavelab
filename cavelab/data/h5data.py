@@ -26,9 +26,9 @@ class h5data(object):
         hf = h5py.File(self.path+name+'.h5', 'r')
         return hf.get('img').shape
 
-    def create_dataset(self, name, shape):
+    def create_dataset(self, name, shape, dtype='uint8'):
         hf = h5py.File(self.path+name+'.h5')
-        dset = hf.create_dataset("img", shape, dtype='uint8')
+        dset = hf.create_dataset("img", shape, dtype=dtype)
         return dset
 
     def write(self, array, (x, y), dset):

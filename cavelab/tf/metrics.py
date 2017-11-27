@@ -22,11 +22,12 @@ def kernel_summary(var, name='conv'):
     grid = put_kernels_on_grid (var)
     tf.summary.image(name, grid)
 
-def image_summary(var, name='image'):
+def image_summary(var, name='image', resize=True):
     ''' var expected to be [batch_size, width, height]'''
-
     images = tf.expand_dims(var, dim=3)
+    #if resize:
     images = tf.image.resize_images(images, [128,128])
+
     images = tf.transpose(images, [1,2,3,0])
     grid = put_kernels_on_grid(images)
     tf.summary.image(name, grid)
@@ -46,6 +47,7 @@ def put_kernels_on_grid (kernel, pad = 1):
       Tensor of shape [(Y+2*pad)*grid_Y, (X+2*pad)*grid_X, NumChannels, 1].
     '''
     shape = tuple(kernel.get_shape().as_list())
+
     kernel = tf.reshape(kernel, [shape[0], shape[1], shape[2]*shape[3]])
     kernel = tf.expand_dims(kernel, dim=2)
 
@@ -54,6 +56,7 @@ def put_kernels_on_grid (kernel, pad = 1):
             if n % i == 0:
                 if i == 1: pass #print('Who would enter a prime number of filters')
                 return (i, int(n / i))
+
     (grid_Y, grid_X) = factorization (kernel.get_shape()[3].value)
 
     x_min = tf.reduce_min(kernel)
