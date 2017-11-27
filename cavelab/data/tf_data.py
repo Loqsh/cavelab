@@ -2,11 +2,9 @@ import numpy as np
 from cavelab.tf import global_session
 import tensorflow as tf
 import tf_image_processing as tip
+import image_processing as ip
 
-
-# FIXME: Currently works on pair of search and template images
-#        but in ideal case this module should be generalizable
-#        Use inheritance per projects or vary feature set
+# FIXME: Implement augmentation for 3D images
 
 class tfdata(object):
     def __init__(self,  train_file, # train_bad_20.tfrecords
@@ -18,7 +16,9 @@ class tfdata(object):
                         flipping = False,
                         rotating = False,
                         random_crop = False,
-                        max_degree = 0):
+                        random_brightness = False,
+                        max_degree = 0,
+                        random_elastic_transform = False):
 
         self.flipping = flipping
         self.rotating = rotating
@@ -27,7 +27,10 @@ class tfdata(object):
         self.features = features
         self.max_degree = max_degree
         self.random_crop = random_crop
-        self.s_train, self.t_train = self.inputs(self.batch_size)
+        self.random_brightness = random_brightness
+        self.random_elastic_transform = random_elastic_transform
+        self.outputs = self.inputs(self.batch_size)
+        self.elastic_transform = ip.elastic_transformations(2000, 50)
 
     # Functions below modified from here https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos/reading_data/fully_connected_reader.py
     def read_and_decode(self, filename_queue):
@@ -43,15 +46,30 @@ class tfdata(object):
         for feature_name, feature in self.features.iteritems():
           # Convert from a scalar string tensor (whose single string has
           image = tf.decode_raw(features[feature_name], tf.uint8) # Change to tf.int8
-          image.set_shape([feature['in_width']**2])
-          image = tf.reshape(image, [feature['in_width'], feature['in_width']])
+          if 'depth' in feature:
+            shape = [feature['in_width'], feature['in_width'], feature['depth']]
+          else:
+            shape = [feature['in_width'], feature['in_width']]
+
+          raw_shape = np.prod(shape)
+          image.set_shape([raw_shape])
+          image = tf.reshape(image, shape)
           outputs[feature_name] = image
+
+        outputs = {k:tf.expand_dims(v, -1) for k, v in outputs.items()}
 
         # Rotation - Random Flip left, right, random, up down
         if self.flipping:
-          distortions = tf.random_uniform([2], 0, 1.0, dtype=tf.float32)
-          outputs = {k: tip.image_distortions(v, distortions) for k, v in outputs.items()}
+          outputs = {k: tf.image.random_flip_up_down(v, seed=0) for k, v in outputs.items()}
+          outputs = {k: tf.image.random_flip_left_right(v, seed=1) for k, v in outputs.items()}
 
+        if self.random_brightness:
+          max_delta = 0.1
+          image_name = self.features.keys()[0]
+          outputs[image_name] = tf.image.random_brightness(outputs[image_name], max_delta, seed=0)
+          outputs[image_name] = tf.image.random_contrast(outputs[image_name], 0.7, 1, seed=0)
+
+        outputs = {k:tf.squeeze(v) for k, v in outputs.items()}
         # Rotation by degree
         if self.rotating:
           angle = tf.random_uniform([1], -self.max_degree,self.max_degree, dtype=tf.float32)
@@ -74,35 +92,43 @@ class tfdata(object):
         num_epochs: Number of times to read the input data, or 0/None to
            train forever.
       Returns:
-        A tuple (images, labels), where:
+        A tuple (images, lab.els), where:
         Note that an tf.train.QueueRunner is added to the graph, which
         must be run using e.g. tf.train.start_queue_runners().
       """
 
       filename = self.train_file
       with tf.name_scope('input_provider'):
+        files = [filename for x in range(1000)]
+        flat_list = [item for sublist in files for item in sublist]
         filename_queue = tf.train.string_input_producer(
-            [filename for x in range(1000)], num_epochs=None)
+          flat_list, num_epochs=None)
 
         # Even when reading in multiple threads, share the filename
         # queue.
-        search, template = self.read_and_decode(filename_queue)
+        outputs_tensors = self.read_and_decode(filename_queue)
 
         # Shuffle the examples and collect them into batch_size batches.
         # (Internally uses a RandomShuffleQueue.)
         # We run this in two threads to avoid being a bottleneck.
-        search_images, template_images = tf.train.shuffle_batch(
-            [search, template], batch_size=batch_size, num_threads=2,
+        output = tf.train.shuffle_batch(
+            outputs_tensors, batch_size=batch_size, num_threads=2,
             capacity=1000 * batch_size,
             allow_smaller_final_batch=True,
             # Ensures a minimum amount of shuffling of examples.
             min_after_dequeue=1000)
 
 
-        return search_images, template_images
+        return output
 
     def get_batch(self):
         sess = global_session().get_sess()
+        outputs = sess.run(self.outputs)
 
-        search, template = sess.run([self.s_train, self.t_train])
-        return search, template
+        #Elastic Transformation
+        if self.random_elastic_transform:
+          temp = np.concatenate(outputs, axis=0)
+          temp = np.array(self.elastic_transform(temp))
+          outputs= np.split(temp, [outputs[0].shape[0]])
+
+        return outputs
