@@ -38,7 +38,7 @@ def add_conv_weight_layer(kernels, bias, kernel_shape, identity_init= False):
     # Set variables
     #stringID = str(len(kernels))+'_'+str(len(kernels))
     stringID = str(random.randint(0,100000))
-    bias.append(bias_variable(identity=identity_init, init=0.0, shape=[kernel_shape[3]], name='bias_layer_'+stringID))
+    bias.append(bias_variable(identity=identity_init, init=0.0, shape=[kernel_shape[-1]], name='bias_layer_'+stringID))
     kernels.append(weight_variable(kernel_shape, identity_init, name='layer_'+stringID, summary=False))
 
     return kernels, bias
@@ -75,11 +75,21 @@ def deconv2d(x, W, stride=2, padding = "SAME"):
 
     return tf.nn.conv2d_transpose(x, W, output_shape=output_shape, strides=[1, stride, stride, 1], padding=padding)
 
+
 def resizeconv2d(x, W, stride=2, padding = "SAME"):
     x_shape = x.get_shape().as_list()
     x = tf.image.resize_images(x, size=[x_shape[1]*2, x_shape[2]*2], method=1, align_corners=True)
 
     x_out = convolve2d(x, W, padding="SAME")
+    return x_out
+
+def resizeconv2_5d(x, W, stride=2, padding = "SAME"):
+    x_shape = x.get_shape().as_list()
+    x = tf.reshape(x, [x_shape[0], x_shape[1],x_shape[2], x_shape[3]*x_shape[4]])
+    x = tf.image.resize_images(x, size=[x_shape[1]*2, x_shape[2]*2], method=1, align_corners=True)
+    x_shape[1], x_shape[2] = x_shape[1]*2, x_shape[2]*2
+    x = tf.reshape(x, x_shape)
+    x_out = tf.nn.conv3d(x, W, padding=padding, strides=[1,1,1,1,1])
     return x_out
 
 def crop(x, shape):
@@ -107,6 +117,12 @@ def max_pool_2x2(x):
                           strides=[1, 2, 2, 1], padding='SAME')
     return o
 
+def max_pool_2x2x1(x):
+    return tf.nn.max_pool3d(x,
+                          ksize=[1, 2, 2, 1, 1],
+                          strides=[1, 2, 2, 1, 1],
+                          padding='SAME')
+
 
 ### 1x1 Convolution
 def conv_one_by_one(x):
@@ -132,10 +148,10 @@ def conv_block(x, kernel_shape, is_training=tf.constant(True), kernels=[], bias=
 
     return x_out
 
-def conv3d(x, kernel_shape, padding='VALID', strides=[1,1,1,1,1], is_training=tf.constant(True), activation = tf.tanh):
+def conv3d(x, kernel_shape, strides=[1,1,1,1,1], dilation_rate=[1,1,1,1,1], padding='SAME',  kernels=[], bias=[], is_training=tf.constant(True), activation = tf.tanh):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
 
-    x = tf.nn.conv2d(x, kernels[-1], strides=strides, padding=padding) #convolve3d(x, , padding='SAME')
+    x = tf.nn.conv3d(x, kernels[-1], strides=strides, padding=padding) #convolve3d(x, , padding='SAME')
     x = tf.layers.batch_normalization(x, training=True)
     x_out =  activation(x+bias[-1])
 
@@ -194,16 +210,21 @@ def cross_similarity(x):
 
     return cross_sim
 
-def residual_block(net, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
-
-    x_1 = conv_block(net, kernel_shape)
+def residual_block(net, kernel_shape, activation=tf.tanh, kernels=[], bias=[], is3D=False):
+    conv = conv_block
     shape = [kernel_shape[0], kernel_shape[1], kernel_shape[3], kernel_shape[3]]
+    if is3D:
+        conv = conv3d
+        shape = [kernel_shape[0], kernel_shape[1], kernel_shape[2], kernel_shape[4], kernel_shape[4]]
 
-    x_2 = conv_block(x_1, shape)
-    x_3 = conv_block(x_2, shape)
-    x_4 = conv_block(x_3, shape)
+    x_1 = conv(net, kernel_shape, activation=activation)
 
-    x_5 = conv_block(x_4+x_1, shape)
+
+    x_2 = conv(x_1, shape, activation=activation)
+    x_3 = conv(x_2, shape, activation=activation)
+    x_4 = conv(x_3, shape, activation=activation)
+
+    x_5 = conv(x_4+x_1, shape, activation=activation)
     return x_5
 
 def residual_block_dual(x, y, kernel_shape, kernels=[], bias=[] ):
@@ -217,11 +238,34 @@ def residual_block_dual(x, y, kernel_shape, kernels=[], bias=[] ):
     x_5, y_5 = conv_block_dual(x_4+x_1, y_4+y_1, shape, kernels, bias, )
     return x_5, y_5
 
-def deconv_block(x, kernel_shape, activation=tf.tanh, kernels=[], bias=[]):
+def deconv_block(x, kernel_shape, activation=tf.tanh, kernels=[], bias=[], is3D=False):
     kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
     kernels[-1] = tf.transpose(kernels[-1], [0,1,3,2])
-    x_out = activation(deconv2d(x, kernels[-1], padding='SAME')+bias[-1])
+
+    deconvolution = deconv2d
+
+    x_out = activation(deconvolution(x, kernels[-1], padding='SAME')+bias[-1])
     return x_out
+
+def resize_block(x, kernel_shape, phase=True, is3D=True, resize=True, activation=tf.tanh, kernels=[], bias=[]):
+    kernels, bias = add_conv_weight_layer(kernels, bias, kernel_shape)
+
+    if resize and is3D:
+        upsample = resizeconv2_5d
+    elif resize:
+        upsample = resize
+    else:
+        kernels[-1] = tf.transpose(kernels[-1], [0,1,3,2])
+        upsample = deconv2d
+
+    x = upsample(x, kernels[-1], padding='SAME')
+
+    x_out = activation(x+bias[-1])
+
+    x = tf.contrib.layers.batch_norm(x,
+                                    center=True, scale=True,
+                                    is_training=phase)
+    return x
 
 def deconv_block_dual(x, y, kernel_shape, resize=False, activation=tf.tanh, kernels=[], bias=[]):
 
@@ -243,13 +287,10 @@ def deconv_block_dual(x, y, kernel_shape, resize=False, activation=tf.tanh, kern
 
     return x_out, y_out
 
-def batch_normalization(x, y, phase=True):
-    x = tf.contrib.layers.batch_norm(x,
-                                    center=True, scale=True,
-                                    is_training=phase)
-    y = tf.contrib.layers.batch_norm(y,
-                                    center=True, scale=True,
-                                    is_training=phase)
+def batch_normalization(x, y, phase=True, momentum=0.001):
+    return x,y
+    x = tf.layers.batch_normalization(x, training=phase)
+    y = tf.layers.batch_normalization(x, training=phase)
     return x, y
 
 
@@ -434,7 +475,7 @@ def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.000
         shape *= t_shape[3]
         convolve = lambda x, y: fftconvolve3d(x, y, padding = padding)
 
-    #normalize and get variance'
+    #normalize and get variance
     dt = template - tf.reduce_mean(template, axis = axis, keep_dims = True)
 
     templatevariance = tf.reduce_sum(tf.square(dt), axis = axis, keep_dims = True)+tf.constant(eps)
@@ -449,8 +490,8 @@ def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.000
 
     localvariance = localsum2-tf.square(localsum)/shape+tf.constant(eps)
 
-    cl.tf.metrics.scalar(tf.reduce_mean(templatevariance), name='variance/template')
-    cl.tf.metrics.scalar(tf.reduce_mean(localvariance), name='variance/image')
+    #cl.tf.metrics.scalar(tf.reduce_mean(templatevariance), name='gradient_variance_template')
+    #cl.tf.metrics.scalar(tf.reduce_mean(localvariance), name='gradient_variance_image')
 
     denominator = tf.sqrt(localvariance*templatevariance)
 
@@ -524,9 +565,10 @@ def Correlation(img, template,  padding='VALID'):
     return corr
 
 def lambda_norm((img, tmp)):
-    return Correlation(img, tmp)
+    return normxcorr2FFT(img, tmp)
 
 def batch_normxcorr(image, template):
+
     image = tf.transpose(image, [0,3,1,2])
     template = tf.transpose(template, [0,3,1,2])
     p = tf.map_fn(lambda_norm, (image, template), dtype=tf.float32, parallel_iterations=2, name="crop1")

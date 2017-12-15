@@ -16,6 +16,7 @@ class Singleton(_Singleton('SingletonMeta', (object,), {})): pass
 class global_session(Singleton):
     def __init__(self, interactive=False, log_dir=""):
         config = tf.ConfigProto(log_device_placement = False, allow_soft_placement = True)
+        #config.gpu_options.per_process_gpu_memory_fraction = 0.4
         config.gpu_options.allow_growth = True
 
         if interactive:

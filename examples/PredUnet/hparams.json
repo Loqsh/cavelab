@@ -1,0 +1,60 @@
+{
+    "default": {
+        "name": {"data":"predcnn4", "type": "str", "description": "Name of the experiment"},
+        "hypothesis": {"data": "Added better visualization", "type":"str", "description": "What should you figure out running this experiment"},
+        "train_file": {"data": ["data/pinky40/train_mip1_seq8v1.tfrecords"], "type": "str", "description": "Training dataset"},
+        "test_file": {"data": ["data/pinky40/train_mip1_seq8v1.tfrecords"], "type": "str", "description": "Testing dataset"},
+        "n_classes": {"data": 4, "type": "int", "description": "Number of classes"},
+
+        "width": {"data": 256, "type": "int", "description": "Width of window"},
+        "n_sequence": {"data": 8, "type": "int", "description": "Width of z dimension"},
+        "batch_size": {"data": 8, "type": "int", "description": "Size of the batch"},
+        "pred_depth": {"data": 3, "type": "int", "description": "Prediction lengths"},
+
+        "kernels_shape": {
+            "data":  [[3,3,1,1,8],
+                      [3,3,1,8,16],
+                      [3,3,1,16,32],
+                      [3,3,1,32,64]],
+            "type": "array of int", "description": "Kernel description"},
+
+        "learning_rate": {"data": 0.0001, "type": "float", "description": "Learning rate"},
+
+        "training_steps": {"data": 1000000, "type": "int", "description": "Number of training steps"},
+        "testing_steps": {"data": 100, "type": "int", "description": "testing_steps"},
+        "features": {
+            "data": {
+                "image": {"in_width": 256, "width": 256, "depth": 8}
+            }, "type": "dict", "description": "Structure of input features"},
+
+        "augmentation":{
+            "data": {
+                "flipping": false,
+                "random_brightness": false,
+                "random_elastic_transform": false
+            }, "type": "dict", "description": "augmetation"}
+    },
+    "masking" : {
+        "input_src": {"data":"gs://neuroglancer/drosophila_v0/cutoutE/cfnet", "type": "str", "description": "Cloud directory"},
+        "output_src": {"data":"gs://neuroglancer/drosophila_v0/cutoutE/cfsplit", "type": "str", "description": "Cloud directory"},
+        "threshold": {"data": 0.8, "type": "float", "description": "Range [0,1] - Sensivity to error of prediction"},
+        "countour_threshold": {"data": 100, "type": "int", "description": "Selectivity of countours"}
+    },
+    "preprocessing": {
+        "tfrecord_train_dest": {"data":"data/pinky40/train_mip1_seq8v1.tfrecords", "type": "str", "description": "Destination of training set"},
+        "tfrecord_test_dest": {"data":"data/pinky40/test_mip1_seq8v1.tfrecords", "type": "str", "description": "Destination of testing set"},
+
+        "cloud_src": {"data":"gs://neuroglancer/pinky40_v11/image", "type": "str", "description": "Cloud directory"},
+        "cloud_mip": {"data":1, "type": "str", "description": "MIP level for neuroglancer"},
+        "offset":{"data": [4480, 3328], "type": "array", "description": "offset"},
+        "range":{"data": [[40580, 20590, 200], [20000, 20000, 800]], "type":"array", "descrption":"range for data collection" },
+        "test_set_ratio": {"data":0.1, "type": "float", "description": "ratio of test set vs training set"},
+        "train_size": {"data":1000, "type": "int", "description": "ratio of test set vs training set"},
+        "test_size": {"data":1000, "type": "int", "description": "ratio of test set vs training set"},
+
+        "threads": {"data":16, "type": "int", "description": "Number of threads for data collection"},
+        "width": {"data":256, "type": "int", "description": "width of the image"},
+        "scale": {"data":1, "type": "int", "description": "scaling factor"},
+        "n_sequence": {"data":8, "type": "int", "description": "Number of sequence"}
+    }
+}
