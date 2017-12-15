@@ -11,7 +11,7 @@ nvidia-docker run -it --net=host \
 
 cd /project
 ```
-The following simple use case will run a Unet given parameters defined in hparams.json look for examples folder for more use cases
+The following simple use case will run a Unet given parameters defined in hparams.json look for examples folder for more use cases.
 ```
 import cavelab as cl
 hparams = cl.hparams(name="default") # Define hparam.json on main directory and provide parameters
@@ -23,7 +23,7 @@ label = tf.placeholder(tf.float32, shape=hparams.shape, name='label')
 pred = cl.models.FusionNet(image, hparams.kernels_shape)
 
 loss = tf.reduce_mean(tf.square(pred-label))
-model.train_step = tf.train.AdamOptimizer(hparams.learning_rate).minimize(g.loss)
+model.train_step = tf.train.AdamOptimizer(hparams.learning_rate).minimize(loss)
 
 cl.tf.train(model,    name=hparams.name,
                       features=hparams.features,
