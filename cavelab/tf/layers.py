@@ -545,6 +545,43 @@ def normxcorr(source, template):
 
     return p
 
+def normxcorr2D(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.01):
+    # Input img = [b,w,h,d] and template = [w,h,d,d_new]
+
+    # Preprocessing for 2d or 3d normxocrr
+    axis = [0,1]
+    t_shape = template.get_shape().as_list()
+    i_shape = img.get_shape().as_list()
+    shape = t_shape[0]*t_shape[1]*t_shape[2]
+
+    n_channels = t_shape[2]#*t_shape[3]
+    convolve = lambda x, y: tf.nn.conv2d(x, y, padding = padding, strides=strides)
+
+    #normalize and get variance
+    dt = template - tf.reduce_mean(template, axis = [0,1,2], keep_dims = True) # [w,h, d, d_new]
+    templatevariance = tf.reduce_sum(tf.square(dt), axis = [0,1,2], keep_dims = True)+shape*eps # [w,h,d,d_new]
+
+    t1 = tf.ones(tf.shape(dt)) # [w,h, d, d_new]
+    tr = dt# [w,h, d, d_new]
+
+    numerator = convolve(img, tr) # [b, w, h, d_new]
+    n_shape = img.get_shape().as_list()
+
+    # Need to zero out per channel
+    t1 = t1[:,:,:,0:1] # Some optimization
+    localsum2 = convolve(tf.square(img), t1)# [b, w, h, d_new]
+    localsum  = convolve(img, t1) #[b, w, h, d_new]
+
+    localvariance = localsum2-tf.square(localsum)/shape+shape*eps
+
+    templatevariance = tf.tile(templatevariance, [n_shape[0], n_shape[1], n_shape[2], 1])
+    denominator = tf.sqrt(localvariance*templatevariance) # [b,w,h,d_new] #tf.sqrt(localvariance*templatevariance)
+
+    #Compute Pearson
+    p = tf.div(numerator,denominator)
+
+    return p
+
 def EuclideanDistance(img, template,  strides=[1,1,1,1], padding='VALID', eps = 0.0001):
     axis = [1,2]
     t_shape = tf.shape(template) #.get_shape()
