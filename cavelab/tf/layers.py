@@ -403,7 +403,7 @@ def fftconvolve3d(x, y, padding):
     Output p = [b,w,h,d_new]
 '''
 
-def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.001):
+def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.0001):
 
 
     # Preprocessing for 2d or 3d normxocrr
@@ -462,7 +462,7 @@ def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.001):
 
 '''
 
-def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.00001):
+def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 10.000):
 
     # Preprocessing for 2d or 3d normxocrr
     axis = [1,2]
@@ -493,20 +493,25 @@ def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.000
     #cl.tf.metrics.scalar(tf.reduce_mean(templatevariance), name='gradient_variance_template')
     #cl.tf.metrics.scalar(tf.reduce_mean(localvariance), name='gradient_variance_image')
 
+    #loc = tf.argmin(tf.reshape(localvariance, [-1]) )
+
     denominator = tf.sqrt(localvariance*templatevariance)
-
+    #denominator = tf.Print(denominator, [tf.reduce_min(localvariance),
+    #                                    tf.reduce_min(templatevariance),
+    #                                    tf.reduce_min(denominator),
+    #                                    tf.reshape(localsum2, [-1])[loc],
+    #                                    tf.reshape(tf.square(localsum)/shape, [-1])[loc]])
     #zero housekeeping
-    numerator = tf.where(denominator<=tf.zeros(tf.shape(denominator)),
-                            tf.zeros(tf.shape(numerator), tf.float32),
-                            numerator)
+    #numerator = tf.where(denominator<=tf.zeros(tf.shape(denominator)),
+    #                        tf.zeros(tf.shape(numerator), tf.float32),
+    #                        numerator)
 
-    denominator = tf.where(denominator<=tf.zeros(tf.shape(denominator))+tf.constant(eps)*tf.constant(eps),
-                            tf.zeros(tf.shape(denominator),tf.float32)+tf.constant(eps),
-                            denominator)
+    #denominator = tf.where(denominator<=tf.zeros(tf.shape(denominator))+tf.constant(eps)*tf.constant(eps),
+    #                        tf.zeros(tf.shape(denominator),tf.float32)+tf.constant(eps),
+    #                        denominator)
 
     #Compute Pearson
     p = tf.div(numerator,denominator)
-    p = tf.where(tf.is_nan(p, name=None), tf.zeros(tf.shape(p), tf.float32), p, name=None)
 
     return p
 
