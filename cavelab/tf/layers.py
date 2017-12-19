@@ -489,27 +489,8 @@ def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 10.00
     localsum = convolve(img, t1)
 
     localvariance = localsum2-tf.square(localsum)/shape+tf.constant(eps)
-
-    #cl.tf.metrics.scalar(tf.reduce_mean(templatevariance), name='gradient_variance_template')
-    #cl.tf.metrics.scalar(tf.reduce_mean(localvariance), name='gradient_variance_image')
-
-    #loc = tf.argmin(tf.reshape(localvariance, [-1]) )
-
     denominator = tf.sqrt(localvariance*templatevariance)
-    #denominator = tf.Print(denominator, [tf.reduce_min(localvariance),
-    #                                    tf.reduce_min(templatevariance),
-    #                                    tf.reduce_min(denominator),
-    #                                    tf.reshape(localsum2, [-1])[loc],
-    #                                    tf.reshape(tf.square(localsum)/shape, [-1])[loc]])
-    #zero housekeeping
-    #numerator = tf.where(denominator<=tf.zeros(tf.shape(denominator)),
-    #                        tf.zeros(tf.shape(numerator), tf.float32),
-    #                        numerator)
-
-    #denominator = tf.where(denominator<=tf.zeros(tf.shape(denominator))+tf.constant(eps)*tf.constant(eps),
-    #                        tf.zeros(tf.shape(denominator),tf.float32)+tf.constant(eps),
-    #                        denominator)
-
+    
     #Compute Pearson
     p = tf.div(numerator,denominator)
 
@@ -542,43 +523,6 @@ def normxcorr(source, template):
 
         p = tf.reshape(p, [s_shape[0],  s_shape[3], p_shape[1], p_shape[2]])
         p = tf.transpose(p, [0,2,3,1], name='normxcorr')
-
-    return p
-
-def normxcorr2D(img, template, strides=[1,1,1,1], padding='VALID', eps = 0.01):
-    # Input img = [b,w,h,d] and template = [w,h,d,d_new]
-
-    # Preprocessing for 2d or 3d normxocrr
-    axis = [0,1]
-    t_shape = template.get_shape().as_list()
-    i_shape = img.get_shape().as_list()
-    shape = t_shape[0]*t_shape[1]*t_shape[2]
-
-    n_channels = t_shape[2]#*t_shape[3]
-    convolve = lambda x, y: tf.nn.conv2d(x, y, padding = padding, strides=strides)
-
-    #normalize and get variance
-    dt = template - tf.reduce_mean(template, axis = [0,1,2], keep_dims = True) # [w,h, d, d_new]
-    templatevariance = tf.reduce_sum(tf.square(dt), axis = [0,1,2], keep_dims = True)+shape*eps # [w,h,d,d_new]
-
-    t1 = tf.ones(tf.shape(dt)) # [w,h, d, d_new]
-    tr = dt# [w,h, d, d_new]
-
-    numerator = convolve(img, tr) # [b, w, h, d_new]
-    n_shape = img.get_shape().as_list()
-
-    # Need to zero out per channel
-    t1 = t1[:,:,:,0:1] # Some optimization
-    localsum2 = convolve(tf.square(img), t1)# [b, w, h, d_new]
-    localsum  = convolve(img, t1) #[b, w, h, d_new]
-
-    localvariance = localsum2-tf.square(localsum)/shape+shape*eps
-
-    templatevariance = tf.tile(templatevariance, [n_shape[0], n_shape[1], n_shape[2], 1])
-    denominator = tf.sqrt(localvariance*templatevariance) # [b,w,h,d_new] #tf.sqrt(localvariance*templatevariance)
-
-    #Compute Pearson
-    p = tf.div(numerator,denominator)
 
     return p
 
