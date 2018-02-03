@@ -1,11 +1,10 @@
 import numpy as np
 from cavelab.tf import global_session
 import tensorflow as tf
-import tf_image_processing as tip
-import image_processing as ip
+from cavelab.data import tf_image_processing as tip
+from cavelab.data import image_processing as ip
 
 # FIXME: Implement augmentation for 3D images
-
 class tfdata(object):
     def __init__(self,  train_file, # train_bad_20.tfrecords
                         features = {
@@ -18,6 +17,7 @@ class tfdata(object):
                         random_crop = False,
                         random_brightness = False,
                         max_degree = 0,
+                        random_order = True,
                         random_elastic_transform = False):
 
         self.flipping = flipping
@@ -30,6 +30,7 @@ class tfdata(object):
         self.random_brightness = random_brightness
         self.random_elastic_transform = random_elastic_transform
         self.outputs = self.inputs(self.batch_size)
+        self.random_order = random_order
         self.elastic_transform = ip.elastic_transformations(2000, 50)
 
     # Functions below modified from here https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos/reading_data/fully_connected_reader.py
@@ -98,8 +99,9 @@ class tfdata(object):
       """
 
       filename = self.train_file
+      random_order = False #self.random_order
       with tf.name_scope('input_provider'):
-        files = [filename for x in range(1000)]
+        files = [filename for x in range(100)]
         flat_list = [item for sublist in files for item in sublist]
         filename_queue = tf.train.string_input_producer(
           flat_list, num_epochs=None)
@@ -111,13 +113,19 @@ class tfdata(object):
         # Shuffle the examples and collect them into batch_size batches.
         # (Internally uses a RandomShuffleQueue.)
         # We run this in two threads to avoid being a bottleneck.
-        output = tf.train.shuffle_batch(
-            outputs_tensors, batch_size=batch_size, num_threads=2,
-            capacity=1000 * batch_size,
-            allow_smaller_final_batch=True,
-            # Ensures a minimum amount of shuffling of examples.
-            min_after_dequeue=1000)
-
+        if random_order:
+            output = tf.train.shuffle_batch(
+                outputs_tensors, batch_size=batch_size, num_threads=2,
+                capacity=1000 * batch_size,
+                allow_smaller_final_batch=True,
+                seed = 1,
+                # Ensures a minimum amount of shuffling of examples.
+                min_after_dequeue=1000)
+        else:
+            output = tf.train.batch(
+                outputs_tensors, batch_size=batch_size, num_threads=2,
+                capacity=1000 * batch_size,
+                allow_smaller_final_batch=True)
 
         return output
 

@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from cavelab.tf import Graph
-import cavelab.data.image_processing as ip
+from cavelab.data import image_processing as ip
 from cavelab.data import visual
 
 import time
@@ -43,7 +43,8 @@ class Infer(object):
         self.to_crop = to_crop
         self.features = features
 
-    def read(self, (volume,  (x,y,z),  (off_x, off_y, off_z), i)):
+    def read(self, args):
+        (volume,  (x,y,z),  (off_x, off_y, off_z), i) = args
         image = ip.read_without_borders_3d(volume.vol,
                                           (x+self.voxel_offset[0],y+self.voxel_offset[1],z),
                                           (off_x, off_y, off_z),
@@ -55,7 +56,8 @@ class Infer(object):
         return image
 
     # Process by batches
-    def process_old(self, volume, (x,y,z), mset):
+    def process_old(self, volume, x_y_z, mset):
+        (x,y,z) = x_y_z
         t1 = time.time()
 
         inputs = self.pool.map(self.read, [(volume, (x+i*self.scale*self.width/2, y, 0), (self.scale*self.width, self.scale*self.width, 1), i) for i in range(8)])
@@ -118,7 +120,8 @@ class Infer(object):
         self.store(output_volume, mset, shape_origin, z)
 
     '''Optimized inference'''
-    def read2d(self, (volume,  (x,y), step)):
+    def read2d(self, args):
+        (volume,  (x,y), step) = args
         image = ip.read_without_borders_2d(volume,
                                           (x, y),
                                           (step, step),
@@ -214,12 +217,13 @@ class Infer(object):
             print(t2-t1, 'download')
             output = self.process(data)
             t3 = time.time()
-            output = ip.resize(output, (self.out_scale, self.out_scale))
+            output = ip.resize(output[crop:crop+end[0]-begin[0],
+                                      crop:crop+end[1]-begin[1]], (self.out_scale, self.out_scale))
             t4 = time.time()
             print(t3-t2, 'process')
             output_volume.vol[self.out_scale*begin[0]:self.out_scale*end[0],
                               self.out_scale*begin[1]:self.out_scale*end[1],
-                              begin[-1]] = np.expand_dims(output[crop:crop+end[0]-begin[0],crop:crop+end[1]-begin[1]], axis=2)
+                              begin[-1]] = np.expand_dims(output, axis=2)
             t5 = time.time()
             print(t5-t4, 'upload')
             # Clear cache after processing all 64
@@ -234,7 +238,8 @@ class Infer(object):
         import rx
         from rx import Observable, Observer
         scheduler = rx.concurrency.NewThreadScheduler()
-        def download((begin,end)):
+        def download(args):
+            (begin,end) = args
             print((begin,end))
             return (np.zeros((190,96)),begin,end)
 
@@ -242,7 +247,8 @@ class Infer(object):
                              begin[1]-crop:end[1]+crop,\
                              begin[-1]][:,:,0,0],\
                              begin,end)
-        def upload((output,begin,end)):
+        def upload(args):
+            args = (output,begin,end)
             return 0
             output_volume.vol[self.out_scale*begin[0]:self.out_scale*end[0],
                               self.out_scale*begin[1]:self.out_scale*end[1],

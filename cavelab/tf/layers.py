@@ -25,7 +25,7 @@ def weight_variable(shape, identity = False, xavier = True,  name = 'conv', summ
         weight = tf.get_variable(name, shape=tuple(shape),
             initializer=tf.contrib.layers.xavier_initializer())
     else:
-        kernel_init = tf.random_normal(shape, stddev=0.01)
+        kernel_init = tf.random_normal(shape, stddev=1)
         weight = tf.Variable(kernel_init, name=name)
 
     #if summary:
@@ -125,10 +125,10 @@ def max_pool_2x2x1(x):
 
 
 ### 1x1 Convolution
-def conv_one_by_one(x):
+def conv_one_by_one(x, out=1):
     stringID = 'last'
     x_shape = x.get_shape().as_list()
-    shape = [1,1,x_shape[-1], 1]
+    shape = [1,1,x_shape[-1], out]
     identity_init = False
 
     b = bias_variable(identity_init, shape=[1], name='bias_layer_'+stringID)
@@ -462,7 +462,7 @@ def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.0001):
 
 '''
 
-def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 10.000):
+def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 1.000):
 
     # Preprocessing for 2d or 3d normxocrr
     axis = [1,2]
@@ -490,7 +490,7 @@ def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 10.00
 
     localvariance = localsum2-tf.square(localsum)/shape+tf.constant(eps)
     denominator = tf.sqrt(localvariance*templatevariance)
-    
+
     #Compute Pearson
     p = tf.div(numerator,denominator)
 
@@ -550,7 +550,8 @@ def Correlation(img, template,  padding='VALID'):
     corr = convolve(img, tr)
     return corr
 
-def lambda_norm((img, tmp)):
+def lambda_norm(img_tmp):
+    (img, tmp) = img_tmp
     return normxcorr2FFT(img, tmp)
 
 def batch_normxcorr(image, template):

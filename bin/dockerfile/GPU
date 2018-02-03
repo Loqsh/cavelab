@@ -2,8 +2,10 @@ FROM gcr.io/tensorflow/tensorflow:latest-gpu
 
 #EXPOSE 80
 ENV BUILD_ENV=Docker
-COPY . /cavelab/
+ADD . /cavelab
+WORKDIR /
 RUN /cavelab/bin/install
 RUN cd /
 
-ENV MESSAGE "hello from Pixie Docker"
+ENV MESSAGE "hello from Cavelab"
+CMD ["bash"]

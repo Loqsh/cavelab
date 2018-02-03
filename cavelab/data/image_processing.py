@@ -2,6 +2,25 @@ from scipy.misc import imresize
 from scipy import ndimage
 import numpy as np
 from math import floor
+import cv2
+
+def cv_normxcorr(img, template):
+    method = eval('cv2.TM_CCOEFF_NORMED') # CCORR/CCOEFF/SQDIFF NORMED?
+    res = cv2.matchTemplate(img, template, method)
+    return np.array(res)
+
+def multi_cv_normxcorr(img, template):
+    #input shape img = [w,h,d], template = [w,h,d,d_new] and output = [w,h,d_new]
+    d = template.shape[2]
+    d_new = template.shape[3]
+
+    output_shape = [img.shape[0]-template.shape[0]+1, img.shape[1]-template.shape[1]+1,d_new ]
+    output = np.zeros(output_shape)
+    for i in range(d_new):
+        for j in range(d):
+            output[:,:,i] += cv_normxcorr(img[:,:,j], template[:,:,j,i])
+        #output[:,:,i] = output[:,:,i]/d
+    return output
 
 def resize(image, ratio=(1/3.0, 1/3.0), order=0):
     if ratio[0]==1 and ratio[1]==1:
@@ -161,7 +180,9 @@ def get_grid(shape, step=0, batch_size=8):
     if borders are passed then instead of error return black
 
 '''
-def read_without_borders_2d(data, (x,y), (off_x, off_y), scale_ratio=(1,1)):
+def read_without_borders_2d(data,x_y,off_x_off_y, scale_ratio=(1,1)):
+    (x,y) = x_y
+    (off_x, off_y) = off_x_off_y
     shape = data.shape
     crop = [x,x+off_x, y, y+off_y]
     (padd_x, padd_x_size, padd_y, padd_y_size) = (0,off_x,0,off_y)
@@ -190,7 +211,9 @@ def read_without_borders_2d(data, (x,y), (off_x, off_y), scale_ratio=(1,1)):
     return resize(sample, ratio=scale_ratio)
 
 
-def read_without_borders_3d(data, (x,y,z), (off_x,off_y,off_z), scale_ratio=(1,1,1), voxel_offset = (0,0)):
+def read_without_borders_3d(data, x_y_z, off_x_off_y_off_z, scale_ratio=(1,1,1), voxel_offset = (0,0)):
+    (x,y,z) = x_y_z
+    (off_x,off_y,off_z) = off_x_off_y_off_z
     shape = np.array(data.shape)
     shape[0] += voxel_offset[0]
     shape[1] += voxel_offset[1]

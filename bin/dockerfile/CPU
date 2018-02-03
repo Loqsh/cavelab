@@ -7,4 +7,4 @@ COPY . /cavelab/
 RUN chmod +x /cavelab/bin/install
 
 RUN /cavelab/bin/install
-ENV MESSAGE "hello from Pixie Docker"
+ENV MESSAGE "hello from Cavelab"

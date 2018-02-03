@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import os
-from setuptools import setup
-
-os.system('pip install --no-cache-dir -r requirements.txt')
+#from setuptools import setup
+from distutils.core import setup
+#os.system('pip install --no-cache-dir -r requirements.txt')
 
 setup(name='cavelab',
       version='0.0.1',

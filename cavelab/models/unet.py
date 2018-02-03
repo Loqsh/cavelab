@@ -67,7 +67,7 @@ def SiameseFusionNet(x, y,  resize=False,
     #Variable settings
     layers = [(x, y)]
     count = len(kernel_shape)
-
+    #xs, ys = [], []
     #Encode
     for i in range(count):
 
@@ -86,4 +86,5 @@ def SiameseFusionNet(x, y,  resize=False,
         shape = kernel_shape[-i-1]
         shape = [3,3, shape[3], shape[3]]
         x, y = cl.tf.layers.residual_block_dual(x+x_enc, y+y_enc, shape)
-    return x, y
+        xs.insert(0,x), ys.insert(0,y)
+    return [xs[-1]], [ys[-1]]
