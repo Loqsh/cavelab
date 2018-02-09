@@ -33,7 +33,8 @@ class global_session(Singleton):
         self.coord = tf.train.Coordinator()
         self.threads = tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
         self.run_metadata = tf.RunMetadata()
-        self.saver = tf.train.Saver()
+        if not log_dir=="":
+            self.saver = tf.train.Saver()
 
 
     def init():

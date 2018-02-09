@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 
-from cavelab.data import image_processing as ip
+from . import image_processing as ip
 
 import csv
 

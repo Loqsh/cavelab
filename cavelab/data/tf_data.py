@@ -44,7 +44,8 @@ class tfdata(object):
           features=_features)
 
         outputs = {}
-        for feature_name, feature in self.features.iteritems():
+
+        for feature_name, feature in self.features.items():
           # Convert from a scalar string tensor (whose single string has
           image = tf.decode_raw(features[feature_name], tf.uint8) # Change to tf.int8
           if 'depth' in feature:
@@ -84,7 +85,7 @@ class tfdata(object):
 
         # Convert from [0, 255] -> [-0.5, 0.5] floats.
         outputs = {k: tf.cast(v, tf.float32) / 255.0 for k, v in outputs.items()}
-        return outputs.values()
+        return list(outputs.values())
 
     def inputs(self, batch_size, num_epochs=None):
       """Reads input data num_epochs times.

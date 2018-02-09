@@ -11,5 +11,5 @@ setup(name='cavelab',
       author='Davit Buniatyan',
       author_email='davit@princeton.edu',
       url='loqsh.com',
-      packages=['cavelab']
+      packages=['cavelab', 'cavelab.data']
      )

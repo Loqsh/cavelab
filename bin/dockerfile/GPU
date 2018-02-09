@@ -1,11 +1,13 @@
-FROM gcr.io/tensorflow/tensorflow:latest-gpu
+FROM tensorflow/tensorflow:1.6.0-rc0-gpu-py3
 
+#RUN apt-get -y update && apt-get upgrade
+#FROM gcr.io/tensorflow/tensorflow:latest-gpu
 #EXPOSE 80
+
 ENV BUILD_ENV=Docker
 ADD . /cavelab
 WORKDIR /
-RUN /cavelab/bin/install
-RUN cd /
 
-ENV MESSAGE "hello from Cavelab"
+RUN /cavelab/bin/install
+WORKDIR /projects
 CMD ["bash"]

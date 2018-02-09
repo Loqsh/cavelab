@@ -8,7 +8,7 @@ class Cloud(object):
     def __init__(self, path = "", mip = 0, bounded = False, fill_missing=True, cache=False):
         self.path = path
         self.mip = mip
-        self.path_hash = int(hashlib.sha1(path).hexdigest(), 16) % (10 ** 8)
+        self.path_hash = int(hashlib.sha1(path.encode('utf-8')).hexdigest(), 16) % (10 ** 8)
         self.path_to_cache = '/.cache/'
         self.sampling = 2**self.mip
         self.vol = None

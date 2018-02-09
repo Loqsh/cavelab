@@ -1,7 +1,8 @@
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux'  ]]; then
-  sudo nvidia-docker run -it cavelab:latest-gpu bash
+   nvidia-docker run --net=host -it \
+      cavelab:latest-gpu bash
 elif [[ "$unamestr" == 'Darwin'  ]]; then
   sudo docker run -it cavelab:latest bash
 fi

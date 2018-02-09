@@ -5,11 +5,17 @@ numpy
 h5py
 tifffile
 pathos
+cloud-volume
 
-#tensorflow
+# Deep Learning framework
+http://download.pytorch.org/whl/cu90/torch-0.3.0.post4-cp35-cp35m-linux_x86_64.whl 
+torchvision
+#tensorflow-gpu
+#onnx
+#onnx-tf
+
 scipy == 0.18.1
 protobuf == 3.3.0
 cloud-volume
-git+https://github.com/JuliaPy/pyjulia
+#git+https://github.com/JuliaPy/pyjulia
 opencv-python
-rx

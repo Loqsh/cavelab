@@ -1,0 +1,30 @@
+#!/bin/bash
+echo 'running installations'
+# install apt-get dependancies
+
+#apt-get -y update && apt-get upgrade
+
+# Required dependencies
+apt-get -y update && apt install -y build-essential cmake git pkg-config libavcodec-dev libavformat-dev libswscale-dev libsm6 libxext6 libfontconfig1 libxrender1 python3-tk
+
+# Dependencies for Python bindings libgtk2.0-dev
+# If you use a non-system copy of Python (eg. with pyenv or virtualenv), then you probably don't need to do this part
+#apt-get install protobuf-compiler libprotoc-dev
+
+# Optional, but installing these will ensure you have the latest versions compiled with OpenCV
+#apt install -y libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev python3-tk
+
+
+#Install requirements
+#apt-get install python3-pip
+#pip install -U pip
+cd /cavelab/
+#./julia/build_julia
+
+# Pip requriements
+pip3 install -r requirements.txt
+pip3 install tensorflow-gpu
+
+# Setup cavelab
+pip install -e .
+mkdir /.cache

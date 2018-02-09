@@ -15,8 +15,8 @@ def central_crop(image, size):
 
     shape = image.get_shape().as_list()
     if len(shape)>3:
-        image[shape[0]/2-size[0]/2:shape[0]/2+size[0]/2, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2, :]
-    return image[shape[0]/2-size[0]/2:shape[0]/2+size[0]/2, shape[1]/2-size[1]/2:shape[1]/2+size[1]/2]
+        return image[int(shape[0]/2-size[0]/2):int(shape[0]/2+size[0]/2), int(shape[1]/2-size[1]/2):int(shape[1]/2+size[1]/2), :]
+    return image[int(shape[0]/2-size[0]/2):int(shape[0]/2+size[0]/2), int(shape[1]/2-size[1]/2):int(shape[1]/2+size[1]/2)]
 
 
 def rotate_image(image, angle):
