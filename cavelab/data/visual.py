@@ -1,9 +1,18 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy as np
 import tensorflow as tf
 import h5py
 from scipy.misc import imresize
+
 import matplotlib.pyplot as plt
 from PIL import Image
+import cv2
+import io
+
+
+
 
 #Graphical
 def show(img):
@@ -81,3 +90,35 @@ def xcsurface(xc):
     ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
     fig.colorbar(surf, shrink=0.5, aspect=10)
+
+# move to visualize
+def flow(_flow):
+
+    hsv = np.zeros((_flow.shape[0], _flow.shape[1], 3), dtype=np.float32)
+    hsv[...,1] = 255
+
+    mag, ang = cv2.cartToPolar(_flow[...,0], _flow[...,1])
+    hsv[...,0] = ang*180/np.pi/2
+    hsv[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
+    rgb = cv2.cvtColor(hsv,cv2.COLOR_HSV2BGR)
+
+    grid = draw_vector_field(ang, hsv)
+    return rgb, grid
+
+def draw_vector_field(ang, hsv, my_dpi=80, width=768):
+    plt.figure(figsize=(width/my_dpi, width/my_dpi), dpi=my_dpi, frameon=False)
+    X, Y = np.meshgrid(np.arange(hsv.shape[0])[::10],
+                       np.arange(hsv.shape[1])[::10])
+
+    U = np.cos(ang[::10,::10]) * hsv[...,2][::10,::10]
+    V = np.sin(ang[::10,::10]) * hsv[...,2][::10,::10]
+    Q = plt.quiver(X, Y, U, V)
+    #plt.axes().get_xaxis().set_visible(False)
+    #plt.axes().get_yaxis().set_visible(False)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    crop = int(0.1*width)
+    fig = np.array(Image.open(buf))[crop+16:width-crop,crop+16:width-crop,0:3]
+
+    return fig

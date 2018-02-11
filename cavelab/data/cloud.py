@@ -1,4 +1,4 @@
-#from cloudvolume import CloudVolume
+from cloudvolume import CloudVolume
 import numpy as np
 import os
 import hashlib

@@ -23,7 +23,7 @@ cd /cavelab/
 
 # Pip requriements
 pip3 install -r requirements.txt
-pip3 install tensorflow-gpu
+#pip3 install tensorflow-gpu
 
 # Setup cavelab
 pip install -e .
