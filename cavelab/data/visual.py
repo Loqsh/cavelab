@@ -105,7 +105,7 @@ def flow(_flow):
     grid = draw_vector_field(ang, hsv)
     return rgb, grid
 
-def draw_vector_field(ang, hsv, my_dpi=80, width=768):
+def draw_vector_field(ang, hsv, my_dpi=160, width=312):
     plt.figure(figsize=(width/my_dpi, width/my_dpi), dpi=my_dpi, frameon=False)
     X, Y = np.meshgrid(np.arange(hsv.shape[0])[::10],
                        np.arange(hsv.shape[1])[::10])
@@ -113,12 +113,12 @@ def draw_vector_field(ang, hsv, my_dpi=80, width=768):
     U = np.cos(ang[::10,::10]) * hsv[...,2][::10,::10]
     V = np.sin(ang[::10,::10]) * hsv[...,2][::10,::10]
     Q = plt.quiver(X, Y, U, V)
-    #plt.axes().get_xaxis().set_visible(False)
-    #plt.axes().get_yaxis().set_visible(False)
+
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     crop = int(0.1*width)
-    fig = np.array(Image.open(buf))[crop+16:width-crop,crop+16:width-crop,0:3]
+    fig = np.array(Image.open(buf))[crop+8:width-crop,crop+8:width-crop,0:3]
+    plt.close('all')
 
     return fig
