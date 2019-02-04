@@ -24,7 +24,8 @@ class Infer(object):
                        use_blend_map=False,
                        to_crop=True,
                        features = { "inputs":"", "outputs": ""},
-                       chunk_size_z = 64):
+                       chunk_size_z = 64,
+                       output_dim = 1):
         #Global Parameters
         self.offset = offset
         self.voxel_offset = voxel_offset
@@ -35,6 +36,8 @@ class Infer(object):
         self.pool = ThreadPool(n_threads)
         self.model = Graph(directory=model_directory, name=name)
         self.blend_map = ip.get_blend_map(self.width/2, self.width) #FIXME
+        self.blend_map = np.repeat(np.expand_dims(self.blend_map, -1), output_dim, axis=2)
+
         self.batch_size = batch_size
         self.cloud_volume = cloud_volume
         self.normalization = normalization
@@ -42,6 +45,7 @@ class Infer(object):
         self.use_blend_map = use_blend_map
         self.to_crop = to_crop
         self.features = features
+        self.output_dim = output_dim
 
     def read(self, args):
         (volume,  (x,y,z),  (off_x, off_y, off_z), i) = args
@@ -131,8 +135,17 @@ class Infer(object):
 
         return image
 
+    def read3d(self, args):
+        (volume,  (x,y), step) = args
+        image = ip.read_without_borders_3d(np.expand_dims(volume,-1),
+                                          (x, y, 0),
+                                          (step, step, volume.shape[2]))
+        image = image/255.0
+        image = image[:,:]
+
+        return image
     def post_process(self, image):
-        if self.normalization:
+        if self.normalization and False:
             image = ip.normalize(image)
 
         if self.use_blend_map:
@@ -143,15 +156,15 @@ class Infer(object):
 
         image = ip.resize(image, (self.in_scale, self.in_scale), order=0)
 
-        image = image.astype(np.uint8)
+        #image = image.astype(np.uint8)
 
         return image
 
     def process_core(self, images):
-        images = self.model.process({self.features['inputs']: images}, [self.features['outputs']])
+        images = self.model.process({self.features['inputs']: np.expand_dims(images,-1)}, [self.features['outputs']])
         images = images[0]
-        images = np.squeeze(images)
-        images = [images[i,:,:] for i in range(8)]
+        #images = np.squeeze(images)
+        images = [images[i,:,:] for i in range(self.batch_size)]
         images = self.pool.map(self.post_process, images)
         return images
 
@@ -163,7 +176,7 @@ class Infer(object):
             if coords[i][0] == -1:
                 break
             begin = (coords[i][0]+crop, coords[i][1]+crop)
-            end =(coords[i][0]+ishape, coords[i][1]+ishape)
+            end = (coords[i][0]+ishape, coords[i][1]+ishape)
             mset[begin[0]:end[0], begin[1]:end[1]] += images[i][crop:ishape, crop:ishape]
         return mset
 
@@ -177,24 +190,31 @@ class Infer(object):
         #Input organization
         shape_origin = np.array(input_volume.shape)
         width = self.in_scale*self.width
+        #print()
+        shape = [shape_origin[0]+width,shape_origin[1]+width,self.output_dim]
 
-        shape = shape_origin+width
-        mset = np.zeros(shape, np.uint8)
+        mset = np.zeros(shape, np.float32)
 
         step = width - 2*self.in_scale*self.crop_size
         grid = ip.get_grid(shape_origin+self.in_scale*self.crop_size, step=step, batch_size=self.batch_size)
         i = 0
+        read = self.read2d
+        if len(input_volume.shape)==3:
+            read = self.read3d
         for batch in grid:
             t1 = time.time()
-            images = self.pool.map(self.read2d,
+            images = self.pool.map(read,
                         [(input_volume, np.array(coord)-self.in_scale*self.crop_size, width) for coord in batch])
             images = self.process_core(images)
+            #print(mset.shape, images[0].shape)
             mset = self.write(mset, images, batch, step)
             t2 = time.time()
             #print(str(i)+'/'+str(len(grid)), t2-t1)
             i += 1
         mset = mset[self.in_scale*self.crop_size:self.in_scale*self.crop_size+shape_origin[0],
                     self.in_scale*self.crop_size:self.in_scale*self.crop_size+shape_origin[1]]
+        if self.normalization:
+            mset = ip.normalize(mset).astype(np.uint8)
         return mset
 
     '''

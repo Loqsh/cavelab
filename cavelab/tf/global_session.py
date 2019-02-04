@@ -28,13 +28,14 @@ class global_session(Singleton):
         if self.log_dir!="":
             self.add_log_writers(self.log_dir)
 
-        init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+        init_op = tf.group(tf.global_variables_initializer(),
+                           tf.local_variables_initializer())
         self.sess.run(init_op)
         self.coord = tf.train.Coordinator()
         self.threads = tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
         self.run_metadata = tf.RunMetadata()
-        if not log_dir=="":
-            self.saver = tf.train.Saver()
+        #if not log_dir=="":
+
 
 
     def init():
@@ -66,9 +67,11 @@ class global_session(Singleton):
         writer.add_summary(merge, step)
 
     def model_save(self):
+        self.saver = tf.train.Saver()
         self.saver.save(self.sess, self.log_dir+"model.ckpt")
 
     def restore_weights(self):
+        self.saver = tf.train.Saver()
         model_dir =self.log_dir
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and ckpt.model_checkpoint_path:

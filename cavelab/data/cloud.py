@@ -16,7 +16,13 @@ class Cloud(object):
         self.fill_missing = fill_missing
         self.cache = cache
 
-        self.vol = CloudVolume(self.path, mip=self.mip, cache=cache, bounded=self.bounded, fill_missing=self.fill_missing)
+        self.vol = CloudVolume(self.path,
+            non_aligned_writes=True,
+            mip=self.mip,
+            cache=cache,
+            bounded=self.bounded,
+            fill_missing=self.fill_missing,
+            parallel=False)
         self.shape = self.vol.shape
 
 

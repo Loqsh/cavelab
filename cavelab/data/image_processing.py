@@ -28,13 +28,16 @@ def resize(image, ratio=(1/3.0, 1/3.0), order=0):
     return ndimage.interpolation.zoom(image, ratio, order=order)
 
 def normalize(image):
+    image -= image.mean()
+    image /= image.std()
+
     if len(image.shape)>2:
         for i in range(image.shape[2]):
-            image[:,:,i] += abs(image[:,:,i].min())
+            image[:,:,i] -= image[:,:,i].min()
             image[:,:,i] /= abs(image[:,:,i].max())
             image[:,:,i] *= 255.0
     else:
-        image += abs(image.min())
+        image -= image.min()
         image /= abs(image.max())
         image *= 255
 
@@ -211,7 +214,7 @@ def read_without_borders_2d(data,x_y,off_x_off_y, scale_ratio=(1,1)):
     return resize(sample, ratio=scale_ratio)
 
 
-def read_without_borders_3d(data, x_y_z, off_x_off_y_off_z, scale_ratio=(1,1,1), voxel_offset = (0,0)):
+def read_without_borders_3d(data, x_y_z, off_x_off_y_off_z, scale_ratio=(1,1,1), voxel_offset = (0,0), rgb=False):
     (x,y,z) = x_y_z
     (off_x,off_y,off_z) = off_x_off_y_off_z
     shape = np.array(data.shape)

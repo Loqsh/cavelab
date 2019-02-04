@@ -2,10 +2,11 @@
 echo 'running installations'
 # install apt-get dependancies
 
-#apt-get -y update && apt-get upgrade
+apt-get -y update && apt-get upgrade
 
 # Required dependencies
-apt-get -y update && apt install -y build-essential cmake git pkg-config libavcodec-dev libavformat-dev libswscale-dev libsm6 libxext6 libfontconfig1 libxrender1 python3-tk
+apt-get install -y build-essential cmake git pkg-config libavcodec-dev libavformat-dev libswscale-dev libsm6 libxext6 libfontconfig1 libxrender1 python3-tk
+curl https://sdk.cloud.google.com | bash
 
 # Dependencies for Python bindings libgtk2.0-dev
 # If you use a non-system copy of Python (eg. with pyenv or virtualenv), then you probably don't need to do this part
@@ -23,7 +24,7 @@ cd /cavelab/
 
 # Pip requriements
 pip3 install -r requirements.txt
-#pip3 install tensorflow-gpu
+pip3 install tensorflow-gpu
 
 # Setup cavelab
 pip install -e .

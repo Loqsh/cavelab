@@ -12,8 +12,6 @@ import cv2
 import io
 
 
-
-
 #Graphical
 def show(img):
     fig = plt.figure()
@@ -98,7 +96,7 @@ def flow(_flow):
     hsv[...,1] = 255
 
     mag, ang = cv2.cartToPolar(_flow[...,0], _flow[...,1])
-    hsv[...,0] = ang*180/np.pi/2
+    hsv[...,0] = ang*180/np.pi
     hsv[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
     rgb = cv2.cvtColor(hsv,cv2.COLOR_HSV2BGR)
 
@@ -106,12 +104,18 @@ def flow(_flow):
     return rgb, grid
 
 def draw_vector_field(ang, hsv, my_dpi=160, width=312):
-    plt.figure(figsize=(width/my_dpi, width/my_dpi), dpi=my_dpi, frameon=False)
-    X, Y = np.meshgrid(np.arange(hsv.shape[0])[::10],
-                       np.arange(hsv.shape[1])[::10])
+    if hsv.shape[1]<32:
+        rate = 1
+    else:
+        rate = int(10*hsv.shape[1]/256)
 
-    U = np.cos(ang[::10,::10]) * hsv[...,2][::10,::10]
-    V = np.sin(ang[::10,::10]) * hsv[...,2][::10,::10]
+    plt.figure(figsize=(width/my_dpi, width/my_dpi), dpi=my_dpi, frameon=False)
+    X, Y = np.meshgrid(np.arange(hsv.shape[0])[::rate],
+                       np.arange(hsv.shape[1])[::rate])
+
+    U = np.cos(ang[::rate,::rate]) * hsv[...,2][::rate,::rate]
+    V = np.sin(ang[::-rate,::-rate]) * hsv[...,2][::-rate,::-rate]
+
     Q = plt.quiver(X, Y, U, V)
 
     buf = io.BytesIO()

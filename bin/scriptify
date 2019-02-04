@@ -1,0 +1,2 @@
+sudo ln -s /usr/people/$USER/seungmount/research/davit/Cavelab/bin/run /usr/local/bin/cavelab
+chmod +x /usr/people/$USER/seungmount/research/davit/Cavelab/bin/run

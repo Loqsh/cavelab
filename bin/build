@@ -2,7 +2,7 @@ unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux'  ]]; then
   echo 'Building GPU version'
-  docker build --no-cache -t cavelab:latest-gpu -f ./bin/dockerfile/GPU .
+  docker build --no-cache -t cavelab:latest -f ./bin/dockerfile/GPU .
 elif [[ "$unamestr" == 'Darwin'  ]]; then
   echo 'Building CPU version'
   docker build --no-cache -t cavelab:latest -f ./bin/dockerfile/CPU .

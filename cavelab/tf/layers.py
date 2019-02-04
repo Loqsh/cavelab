@@ -462,11 +462,12 @@ def normxcorr2(img, template, strides=[1,1,1,1], padding='SAME', eps = 0.0001):
 
 '''
 
-def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 1.000):
+def normxcorr2FFT(img, template, strides=[1,1,1,1], padding='VALID', eps = 27.000):
 
     # Preprocessing for 2d or 3d normxocrr
     axis = [1,2]
     t_shape = tf.shape(template) #.get_shape()
+
     shape = tf.cast(t_shape[1]*t_shape[2], tf.float32)
     convolve = lambda x, y: fftconvolve2d(x, y, padding = padding)
 

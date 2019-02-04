@@ -1,8 +1,18 @@
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux'  ]]; then
-   nvidia-docker run --net=host -it \
-      cavelab:latest-gpu bash
+   sudo NV_GPU=$1 nvidia-docker run --net=host \
+      -v /usr/people/$USER/seungmount/research/davit/Cavelab:/cavelab \
+      -v /usr/people/davitb/seungmount/research/davit:/projects \
+      -v /usr/people/davitb/.kaggle/:/usr/people/davitb/.kaggle/ \
+      -v /tmp:/tmp \
+      -e GOOGLE_APPLICATION_CREDENTIALS='/root/.cloudvolume/secrets/google-secret.json' \
+      -v /usr/people/davitb/Git/otb-toolkit/sequences:/usr/people/davitb/Git/otb-toolkit/sequences \
+      -v /root/.cloudvolume/secrets/:/root/.cloudvolume/secrets/ \
+      -it davidbun/cavelab bash
+
 elif [[ "$unamestr" == 'Darwin'  ]]; then
   sudo docker run -it cavelab:latest bash
+
+  #
 fi

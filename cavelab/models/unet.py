@@ -67,14 +67,16 @@ def SiameseFusionNet(x, y,  resize=False,
     #Variable settings
     layers = [(x, y)]
     count = len(kernel_shape)
-    #xs, ys = [], []
+    xs, ys = [], []
+    
     #Encode
     for i in range(count):
-
         x, y = cl.tf.layers.residual_block_dual(x, y, kernel_shape[i])
         layers.append((x, y))
         if i!=(count-1):
             x, y = cl.tf.layers.max_pool_2x2(x), cl.tf.layers.max_pool_2x2(y)
+
+
     # Decode
     for i in range(1, count):
         shape = kernel_shape[-i]
@@ -87,4 +89,6 @@ def SiameseFusionNet(x, y,  resize=False,
         shape = [3,3, shape[3], shape[3]]
         x, y = cl.tf.layers.residual_block_dual(x+x_enc, y+y_enc, shape)
         xs.insert(0,x), ys.insert(0,y)
-    return [xs[-1]], [ys[-1]]
+    #print(xs)
+    #print("     ")
+    return [xs[0]], [ys[0]]

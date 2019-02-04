@@ -3,6 +3,7 @@ from cavelab.tf import global_session
 import tensorflow as tf
 from cavelab.data import tf_image_processing as tip
 from cavelab.data import image_processing as ip
+from collections import OrderedDict
 
 # FIXME: Implement augmentation for 3D images
 class tfdata(object):
@@ -37,7 +38,10 @@ class tfdata(object):
     def read_and_decode(self, filename_queue):
         reader = tf.TFRecordReader()
         _, serialized_example = reader.read(filename_queue)
+
+
         _features = {feature: tf.FixedLenFeature([], tf.string) for feature in self.features.keys()}
+
         features = tf.parse_single_example(
           serialized_example,
           # Defaults are not specified since both keys are required.
@@ -50,6 +54,8 @@ class tfdata(object):
           image = tf.decode_raw(features[feature_name], tf.uint8) # Change to tf.int8
           if 'depth' in feature:
             shape = [feature['in_width'], feature['in_width'], feature['depth']]
+          elif 'shape' in feature:
+            shape = feature['shape']
           else:
             shape = [feature['in_width'], feature['in_width']]
 
@@ -57,8 +63,10 @@ class tfdata(object):
           image.set_shape([raw_shape])
           image = tf.reshape(image, shape)
           outputs[feature_name] = image
-
-        outputs = {k:tf.expand_dims(v, -1) for k, v in outputs.items()}
+        outputs = {k: tf.cast(v, tf.float32) / 255.0 for k, v in outputs.items()}
+        #return outputs
+        if len(shape)==2:
+            outputs = {k:tf.expand_dims(v, -1) for k, v in outputs.items()}
 
         # Rotation - Random Flip left, right, random, up down
         if self.flipping:
@@ -85,7 +93,8 @@ class tfdata(object):
 
         # Convert from [0, 255] -> [-0.5, 0.5] floats.
         outputs = {k: tf.cast(v, tf.float32) / 255.0 for k, v in outputs.items()}
-        return list(outputs.values())
+        outputs = list(OrderedDict(sorted(outputs.items())).values())
+        return outputs
 
     def inputs(self, batch_size, num_epochs=None):
       """Reads input data num_epochs times.
@@ -114,6 +123,7 @@ class tfdata(object):
         # Shuffle the examples and collect them into batch_size batches.
         # (Internally uses a RandomShuffleQueue.)
         # We run this in two threads to avoid being a bottleneck.
+
         if random_order:
             output = tf.train.shuffle_batch(
                 outputs_tensors, batch_size=batch_size, num_threads=2,
@@ -132,12 +142,13 @@ class tfdata(object):
 
     def get_batch(self):
         sess = global_session().get_sess()
+
         outputs = sess.run(self.outputs)
 
         #Elastic Transformation
         if self.random_elastic_transform:
           temp = np.concatenate(outputs, axis=0)
-          temp = np.array(self.elastic_transform(temp))
-          outputs= np.split(temp, [outputs[0].shape[0]])
-
+          sub = int(2*temp.shape[0]/len(outputs))
+          temp[:sub] = np.array(self.elastic_transform(temp))[:sub]
+          outputs = np.split(temp, len(outputs))
         return outputs

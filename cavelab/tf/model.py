@@ -1,4 +1,5 @@
 import tensorflow as tf
+from cavelab.tf import global_session
 
 class Graph(object):
     def __init__(self, directory="", name=""):
@@ -12,10 +13,12 @@ class Graph(object):
             self.graph = tf.get_default_graph()
 
     def _load_model(self, directory, name):
-        config = tf.ConfigProto(log_device_placement = False, allow_soft_placement = True)
-        config.gpu_options.allow_growth = True
-        sess = tf.Session(config=config)
-        new_saver = tf.train.import_meta_graph(directory+name+'.ckpt.meta', clear_devices=True)
+        config = tf.ConfigProto(log_device_placement = False, allow_soft_placement = False)
+        config.gpu_options.allow_growth = False
+        sess = global_session().get_sess()
+        new_saver = tf.train.import_meta_graph(directory+name+'.ckpt.meta',
+                                                            clear_devices=False)
+
         new_saver.restore(sess, directory+name+'.ckpt')
         return sess
 
